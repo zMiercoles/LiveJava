@@ -1,0 +1,15 @@
+# LiveJava Konfigürasyon Dosyası
+
+# language: Plugin language (en = English, tr = Türkçe)
+language: "en"
+
+# web-ide-port: Tarayıcınız üzerinden kod yazacağınız VS Code arayüzünün yayınlandığı yoldur.
+# VDS Kullanıyorsanız 8080 olarak bırakabilirsiniz. (Giriş: http://vds-ip:8080)
+# Magmanode / Panel gibi firmalar kullanıyorsanız,
+# firmanın panelindeki 'Ağ (Network)' sekmesinden yeni bir Allocation (Port) oluşturup buraya yazın.
+web-ide-port: 8080
+
+# allowed-ips: Web IDE'ye erişebilecek ek IP adresleri.
+# /livejava editor yazan oyuncunun IP'si otomatik eklenir.
+# Buraya ekstra IP'ler yazabilirsiniz (ör: evinizdeki sabit IP).
+allowed-ips: []

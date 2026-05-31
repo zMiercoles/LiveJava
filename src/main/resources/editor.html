@@ -1,0 +1,1154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>LiveJava IDE</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.38.0/min/vs/loader.min.js"></script>
+    <style>
+        /* ═══════════════════════════════════════════════
+           LiveJava IDE — Dark Premium Theme
+           JetBrains-inspired, Gold & Blue accents
+           ═══════════════════════════════════════════════ */
+
+        :root {
+            --bg-deep: #0d1117;
+            --bg-surface: #161b22;
+            --bg-panel: #1c2128;
+            --bg-hover: #21262d;
+            --border: #30363d;
+            --border-subtle: #21262d;
+            --accent-gold: #f0c674;
+            --accent-blue: #58a6ff;
+            --accent-green: #3fb950;
+            --accent-red: #f85149;
+            --accent-yellow: #d29922;
+            --text-primary: #e6edf3;
+            --text-secondary: #8b949e;
+            --text-muted: #484f58;
+            --font-ui: 'Inter', -apple-system, 'Segoe UI', sans-serif;
+            --font-mono: 'JetBrains Mono', 'Cascadia Code', 'Consolas', monospace;
+            --radius-sm: 4px;
+            --radius-md: 6px;
+            --radius-lg: 8px;
+            --shadow-lg: 0 16px 48px rgba(0,0,0,0.6);
+            --shadow-md: 0 8px 24px rgba(0,0,0,0.4);
+            --transition: 0.2s ease;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: var(--font-ui);
+            background: var(--bg-deep);
+            color: var(--text-primary);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ─── Scrollbar ─── */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #30363d; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #484f58; }
+
+        /* ─── Selection ─── */
+        ::selection { background: rgba(88,166,255,0.25); }
+
+        /* ═══════ HEADER ═══════ */
+        .header {
+            background: var(--bg-surface);
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            border-bottom: 1px solid var(--border);
+            position: relative;
+            z-index: 100;
+            flex-shrink: 0;
+        }
+        .header::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, var(--accent-gold), var(--accent-blue), var(--accent-gold));
+            opacity: 0.6;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .logo-icon {
+            width: 28px;
+            height: 28px;
+            background: linear-gradient(135deg, var(--accent-gold), #e0a832);
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 15px;
+            font-weight: 700;
+            color: #0d1117;
+            font-family: var(--font-mono);
+            box-shadow: 0 2px 8px rgba(240,198,116,0.25);
+        }
+        .logo-text {
+            font-size: 16px;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-gold) 0%, #e8d5a3 50%, var(--accent-gold) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: 0.5px;
+        }
+        .logo-badge {
+            font-size: 9px;
+            font-weight: 600;
+            background: linear-gradient(135deg, var(--accent-blue), #388bfd);
+            color: white;
+            padding: 2px 6px;
+            border-radius: 3px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+        .shortcut-badge {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .kbd {
+            background: var(--bg-deep);
+            border: 1px solid var(--border);
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: var(--font-mono);
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+
+        /* ═══════ MAIN LAYOUT ═══════ */
+        .main-area {
+            display: flex;
+            flex-grow: 1;
+            height: calc(100vh - 48px - 28px);
+            overflow: hidden;
+        }
+
+        /* ═══════ SIDEBAR ═══════ */
+        .sidebar {
+            width: 280px;
+            min-width: 280px;
+            background: var(--bg-surface);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+        }
+        .sidebar-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+        }
+        .sidebar-title {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+        }
+        .sidebar-actions {
+            display: flex;
+            gap: 4px;
+        }
+        .icon-btn {
+            width: 26px;
+            height: 26px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: var(--radius-sm);
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 14px;
+            transition: all var(--transition);
+        }
+        .icon-btn:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+        .icon-btn.spin:hover {
+            animation: spin 0.6s ease;
+        }
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .sidebar-tree {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 6px 0;
+        }
+
+        /* ─── File Tree ─── */
+        .file-tree { list-style: none; padding: 0; margin: 0; font-size: 13px; user-select: none; }
+        .file-tree ul {
+            margin-left: 0;
+            padding-left: 16px;
+            display: none;
+            position: relative;
+        }
+        .file-tree ul::before {
+            content: '';
+            position: absolute;
+            left: 11px;
+            top: 0;
+            bottom: 0;
+            width: 1px;
+            background: var(--border-subtle);
+        }
+        .file-tree ul.open { display: block; }
+
+        .tree-item {
+            padding: 5px 12px 5px 8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            border-radius: var(--radius-sm);
+            margin: 1px 6px;
+            transition: all var(--transition);
+            position: relative;
+        }
+        .tree-item:hover {
+            background: var(--bg-hover);
+        }
+
+        .tree-content {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            overflow: hidden;
+        }
+        .tree-content span {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .arrow {
+            font-size: 10px;
+            transition: transform var(--transition);
+            width: 14px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+            flex-shrink: 0;
+        }
+        .arrow.down { transform: rotate(90deg); }
+
+        /* Project-Level Items */
+        .project-item {
+            font-weight: 600;
+            margin: 4px 6px;
+            padding: 8px 12px;
+            background: var(--bg-deep);
+            border-radius: var(--radius-md);
+            border-left: 3px solid var(--text-muted);
+        }
+        .project-item:hover {
+            background: var(--bg-hover);
+        }
+        .project-item.status-running { border-left-color: var(--accent-green); }
+        .project-item.status-error { border-left-color: var(--accent-red); }
+        .project-item.status-building { border-left-color: var(--accent-yellow); }
+        .project-item.status-idle { border-left-color: var(--text-muted); }
+
+        .status-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            display: inline-block;
+            flex-shrink: 0;
+        }
+        .status-dot.running { background: var(--accent-green); box-shadow: 0 0 6px rgba(63,185,80,0.5); }
+        .status-dot.error { background: var(--accent-red); box-shadow: 0 0 6px rgba(248,81,73,0.5); }
+        .status-dot.building { background: var(--accent-yellow); animation: pulse 1.2s ease-in-out infinite; }
+        .status-dot.idle { background: var(--text-muted); }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; box-shadow: 0 0 4px rgba(210,153,34,0.4); }
+            50% { opacity: 0.4; box-shadow: 0 0 8px rgba(210,153,34,0.7); }
+        }
+
+        .build-btn {
+            font-size: 11px;
+            font-weight: 600;
+            font-family: var(--font-ui);
+            padding: 3px 10px;
+            border-radius: 12px;
+            border: none;
+            background: linear-gradient(135deg, var(--accent-blue), #388bfd);
+            color: white;
+            cursor: pointer;
+            transition: all var(--transition);
+            white-space: nowrap;
+            letter-spacing: 0.3px;
+        }
+        .build-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 2px 12px rgba(88,166,255,0.35);
+        }
+        .build-btn:active {
+            transform: scale(0.97);
+        }
+
+        /* File Items */
+        .file-item {
+            color: var(--text-secondary);
+            font-weight: 400;
+        }
+        .file-item:hover {
+            color: var(--text-primary);
+        }
+        .file-item.active {
+            background: rgba(88,166,255,0.1);
+            color: var(--text-primary);
+            border-left: 2px solid var(--accent-blue);
+            margin-left: 4px;
+            padding-left: 6px;
+        }
+        .file-item .file-icon {
+            color: var(--accent-blue);
+            font-size: 12px;
+            flex-shrink: 0;
+            opacity: 0.7;
+        }
+        .file-item.unsaved, .file-item .unsaved {
+            color: var(--accent-gold) !important;
+            font-style: italic;
+        }
+
+        .folder-item .folder-icon { color: var(--accent-gold); opacity: 0.7; font-size: 12px; }
+
+        /* ═══════ EDITOR AREA ═══════ */
+        .editor-container-wrapper {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            background: var(--bg-deep);
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* ─── Tabs ─── */
+        .tabs-container {
+            display: flex;
+            background: var(--bg-surface);
+            overflow-x: auto;
+            border-bottom: 1px solid var(--border);
+            min-height: 36px;
+            flex-shrink: 0;
+        }
+        .tabs-container::-webkit-scrollbar { height: 0; }
+
+        .tab {
+            padding: 0 14px;
+            height: 36px;
+            background: var(--bg-surface);
+            border-right: 1px solid var(--border-subtle);
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-secondary);
+            min-width: 80px;
+            max-width: 180px;
+            position: relative;
+            transition: all var(--transition);
+            white-space: nowrap;
+        }
+        .tab:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+        .tab.active {
+            background: var(--bg-deep);
+            color: var(--text-primary);
+        }
+        .tab.active::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: var(--accent-blue);
+        }
+        .tab.unsaved .tab-name::after {
+            content: '';
+            display: inline-block;
+            width: 7px;
+            height: 7px;
+            background: var(--accent-gold);
+            border-radius: 50%;
+            margin-left: 6px;
+            vertical-align: middle;
+        }
+        .tab-icon {
+            font-size: 12px;
+            opacity: 0.6;
+        }
+        .tab-name {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            flex: 1;
+        }
+        .tab-close {
+            font-size: 15px;
+            color: var(--text-muted);
+            border-radius: var(--radius-sm);
+            width: 18px;
+            height: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: all var(--transition);
+            flex-shrink: 0;
+        }
+        .tab:hover .tab-close { opacity: 1; }
+        .tab-close:hover {
+            background: var(--accent-red);
+            color: white;
+            opacity: 1;
+        }
+
+        /* ─── Editor ─── */
+        #editor-container {
+            flex-grow: 1;
+            width: 100%;
+            display: none;
+        }
+
+        /* ─── Empty State ─── */
+        .empty-state {
+            flex-grow: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 20px;
+            color: var(--text-muted);
+            user-select: none;
+        }
+        .empty-logo {
+            font-size: 64px;
+            opacity: 0.08;
+            font-family: var(--font-mono);
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-gold), var(--accent-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: 4px;
+        }
+        .empty-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+        .empty-hint {
+            font-size: 12px;
+            color: var(--text-muted);
+            text-align: center;
+            line-height: 2;
+        }
+        .empty-hint .kbd {
+            margin: 0 2px;
+        }
+
+        /* ═══════ STATUS BAR ═══════ */
+        .status-bar {
+            height: 28px;
+            background: var(--bg-surface);
+            border-top: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 12px;
+            font-size: 11px;
+            color: var(--text-secondary);
+            flex-shrink: 0;
+            position: relative;
+        }
+        .status-bar::before {
+            content: '';
+            position: absolute;
+            top: -1px;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, var(--accent-blue), transparent 50%);
+            opacity: 0.4;
+        }
+        .status-left {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .status-dot-bar {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--accent-green);
+        }
+        .console-btn {
+            font-family: var(--font-ui);
+            font-size: 11px;
+            font-weight: 500;
+            padding: 2px 10px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: transparent;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all var(--transition);
+        }
+        .console-btn:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+            border-color: var(--accent-blue);
+        }
+
+        /* ═══════ CONTEXT MENU ═══════ */
+        .context-menu {
+            position: absolute;
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow-lg);
+            border-radius: var(--radius-md);
+            display: none;
+            z-index: 1000;
+            min-width: 200px;
+            padding: 4px 0;
+            backdrop-filter: blur(12px);
+        }
+        .context-menu .ctx-item {
+            padding: 7px 14px;
+            font-size: 12px;
+            cursor: pointer;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: all var(--transition);
+            border-radius: 0;
+        }
+        .context-menu .ctx-item:hover {
+            background: rgba(88,166,255,0.15);
+            color: var(--accent-blue);
+        }
+        .context-menu .ctx-item.danger:hover {
+            background: rgba(248,81,73,0.15);
+            color: var(--accent-red);
+        }
+        .context-menu hr {
+            border: none;
+            border-top: 1px solid var(--border);
+            margin: 4px 8px;
+        }
+        .context-menu .ctx-item.disabled {
+            color: var(--text-muted);
+            pointer-events: none;
+            opacity: 0.5;
+        }
+        .ctx-icon {
+            width: 18px;
+            text-align: center;
+            font-size: 13px;
+            flex-shrink: 0;
+        }
+        .ctx-shortcut {
+            margin-left: auto;
+            font-size: 10px;
+            color: var(--text-muted);
+            font-family: var(--font-mono);
+        }
+
+        /* ═══════ LOG VIEWER ═══════ */
+        .log-viewer {
+            position: absolute;
+            bottom: 40px;
+            right: 20px;
+            width: 540px;
+            height: 320px;
+            background: var(--bg-deep);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-lg);
+            display: none;
+            flex-direction: column;
+            z-index: 500;
+            resize: both;
+            overflow: hidden;
+        }
+        .log-header {
+            background: var(--bg-panel);
+            padding: 8px 12px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: move;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            user-select: none;
+            border-bottom: 1px solid var(--border);
+            border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+        }
+        .log-title-area {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .log-title-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent-green);
+        }
+        .log-close {
+            cursor: pointer;
+            color: var(--text-muted);
+            font-size: 16px;
+            width: 22px;
+            height: 22px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: var(--radius-sm);
+            transition: all var(--transition);
+        }
+        .log-close:hover {
+            background: var(--accent-red);
+            color: white;
+        }
+        .log-content {
+            flex-grow: 1;
+            background: #010409;
+            color: var(--text-secondary);
+            padding: 12px;
+            font-size: 12px;
+            font-family: var(--font-mono);
+            overflow-y: auto;
+            white-space: pre-wrap;
+            line-height: 1.6;
+        }
+
+        /* ═══════ ANIMATIONS ═══════ */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .tab { animation: fadeIn 0.15s ease; }
+
+    </style>
+</head>
+<body>
+
+    <!-- ═══════ HEADER ═══════ -->
+    <div class="header">
+        <div class="logo">
+            <div class="logo-icon">LJ</div>
+            <span class="logo-text">LiveJava</span>
+            <span class="logo-badge">IDE</span>
+        </div>
+        <div class="header-right">
+            <div class="shortcut-badge">
+                <span class="kbd">Ctrl</span><span class="kbd">S</span>
+                <span style="color:var(--text-muted)">Save</span>
+            </div>
+            <span style="color:var(--border)">|</span>
+            <span style="color:var(--text-muted)">by Miercoles</span>
+        </div>
+    </div>
+
+    <!-- ═══════ MAIN ═══════ -->
+    <div class="main-area">
+
+        <!-- Sidebar -->
+        <div class="sidebar" oncontextmenu="showMenu(event, '', 'root')">
+            <div class="sidebar-header">
+                <span class="sidebar-title">Explorer</span>
+                <div class="sidebar-actions">
+                    <button class="icon-btn spin" id="refreshBtn" title="Refresh">&#x21BB;</button>
+                </div>
+            </div>
+            <div class="sidebar-tree">
+                <ul class="file-tree" id="fileTree"></ul>
+            </div>
+        </div>
+
+        <!-- Editor -->
+        <div class="editor-container-wrapper">
+            <div class="tabs-container" id="tabsArea"></div>
+            <div id="editor-container"></div>
+            <div class="empty-state" id="emptyState">
+                <div class="empty-logo">&lt;/&gt;</div>
+                <div class="empty-title">There is no tabs open</div>
+                <div class="empty-hint">
+                    Select a file from left panel or<br>
+                    create a new file with right click<br><br>
+                    <span class="kbd">Ctrl</span> + <span class="kbd">S</span> Save &nbsp;&middot;&nbsp;
+                    Right click for options.
+                </div>
+            </div>
+
+            <!-- Log Viewer -->
+            <div class="log-viewer" id="logViewer">
+                <div class="log-header" id="logHeader">
+                    <div class="log-title-area">
+                        <div class="log-title-dot"></div>
+                        <span id="logTitle">Console</span>
+                    </div>
+                    <span class="log-close" onclick="document.getElementById('logViewer').style.display='none'">&#x2715;</span>
+                </div>
+                <div class="log-content" id="logContent">Waiting for logs..</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════ STATUS BAR ═══════ -->
+    <div class="status-bar">
+        <div class="status-left">
+            <div class="status-dot-bar"></div>
+            <span id="status-text">Haz&#305;r</span>
+        </div>
+        <button class="console-btn" onclick="toggleLogViewer()">Console</button>
+    </div>
+
+    <!-- ═══════ JAVASCRIPT ═══════ -->
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const authKey = urlParams.get('key');
+        if (!authKey) {
+            document.body.innerHTML = `
+                <div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#0d1117;">
+                    <div style="font-size:48px;opacity:0.3;">&#x26D4;</div>
+                    <div style="color:#f85149;font-size:18px;font-weight:600;">Yetkisiz Eri&#351;im</div>
+                    <div style="color:#8b949e;font-size:13px;">Please type <code style="background:#161b22;padding:2px 8px;border-radius:4px;color:#f0c674;">/livejava editor</code> to get link.</div>
+                </div>`;
+        }
+
+        let editor;
+        let openTabs = [];
+        let currentActivePath = null;
+        let treeDataCache = [];
+
+        // Monaco Editor
+        require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.38.0/min/vs' }});
+        require(['vs/editor/editor.main'], function () {
+            editor = monaco.editor.create(document.getElementById('editor-container'), {
+                theme: 'vs-dark',
+                automaticLayout: true,
+                fontSize: 14,
+                fontFamily: "'JetBrains Mono', 'Cascadia Code', Consolas, monospace",
+                fontLigatures: true,
+                minimap: { enabled: true, scale: 1, showSlider: 'mouseover' },
+                smoothScrolling: true,
+                cursorBlinking: 'smooth',
+                cursorSmoothCaretAnimation: 'on',
+                renderLineHighlight: 'all',
+                bracketPairColorization: { enabled: true },
+                padding: { top: 8, bottom: 8 }
+            });
+
+            editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, saveCurrentFile);
+
+            editor.onDidChangeModelContent(() => {
+                if (currentActivePath) {
+                    let tab = openTabs.find(t => t.path === currentActivePath);
+                    if (tab && !tab.unsaved) {
+                        tab.unsaved = true;
+                        renderTabs();
+                        updateFileTreeUnsavedUI();
+                    }
+                }
+            });
+
+            if (authKey) loadTree();
+        });
+
+        // ══════════════════ TREE ══════════════════
+        document.getElementById('refreshBtn').addEventListener('click', loadTree);
+
+        function loadTree() {
+            fetch(`/api/tree?key=${authKey}`)
+                .then(res => res.json())
+                .then(data => {
+                    treeDataCache = data;
+                    const treeRoot = document.getElementById('fileTree');
+                    treeRoot.innerHTML = '';
+                    renderTree(data, treeRoot, "scripts", 0);
+                    updateFileTreeUnsavedUI();
+                })
+                .catch(() => setStatus('Cant load file tree!'));
+        }
+
+        function renderTree(nodes, parentElement, basePathName, level) {
+            nodes.sort((a,b) => (a.isDir === b.isDir) ? 0 : a.isDir ? -1 : 1);
+            nodes.forEach(node => {
+                const li = document.createElement('li');
+                const isProject = level === 0;
+
+                let statusClass = "idle";
+                if (isProject && node.status) statusClass = node.status;
+
+                let html = '';
+
+                if (isProject) {
+                    html = `<div class="tree-item project-item status-${statusClass}" onclick="handleTreeClick(event, '${node.path}', ${node.isDir}, '${node.name}')" oncontextmenu="showMenu(event, '${node.path}', 'project', '${node.name}')">
+                        <div class="tree-content">
+                            <span class="arrow" id="arrow-${btoa(node.path)}">&#x25B6;</span>
+                            <span class="status-dot ${statusClass}"></span>
+                            <span id="txt-${btoa(node.path)}">${node.name}</span>
+                        </div>
+                        <button class="build-btn" onclick="event.stopPropagation(); buildProject('${node.name}')">Build</button>
+                    </div>`;
+                } else if (node.isDir) {
+                    html = `<div class="tree-item folder-item" onclick="handleTreeClick(event, '${node.path}', true, '${node.name}')" oncontextmenu="showMenu(event, '${node.path}', 'folder', '${node.name}')">
+                        <div class="tree-content">
+                            <span class="arrow" id="arrow-${btoa(node.path)}">&#x25B6;</span>
+                            <span class="folder-icon">&#x1F4C1;</span>
+                            <span id="txt-${btoa(node.path)}">${node.name}</span>
+                        </div>
+                    </div>`;
+                } else {
+                    const ext = node.name.split('.').pop();
+                    const icon = ext === 'java' ? '&#x2615;' : '&#x1F4C4;';
+                    html = `<div class="tree-item file-item" onclick="handleTreeClick(event, '${node.path}', false, '${node.name}')" oncontextmenu="showMenu(event, '${node.path}', 'file', '${node.name}')">
+                        <div class="tree-content">
+                            <span class="file-icon">${icon}</span>
+                            <span id="txt-${btoa(node.path)}">${node.name}</span>
+                        </div>
+                    </div>`;
+                }
+
+                li.innerHTML = html;
+
+                if (node.isDir) {
+                    const childUl = document.createElement('ul');
+                    childUl.id = `ul-${btoa(node.path)}`;
+                    if (isProject) childUl.classList.add('open');
+                    renderTree(node.children, childUl, node.name, level + 1);
+                    li.appendChild(childUl);
+                }
+                parentElement.appendChild(li);
+            });
+            updateTreeArrows();
+        }
+
+        function handleTreeClick(e, path, isDir, name) {
+            if (isDir) {
+                const ul = document.getElementById(`ul-${btoa(path)}`);
+                if (ul) {
+                    ul.classList.toggle('open');
+                    updateTreeArrows();
+                }
+            } else {
+                openFileAsTab(path, name);
+            }
+        }
+
+        function updateTreeArrows() {
+            document.querySelectorAll('.file-tree ul').forEach(ul => {
+                if (!ul.id) return;
+                const pathId = ul.id.replace('ul-', '');
+                const arrow = document.getElementById(`arrow-${pathId}`);
+                if (arrow) {
+                    if (ul.classList.contains('open')) arrow.classList.add('down');
+                    else arrow.classList.remove('down');
+                }
+            });
+        }
+
+        function updateFileTreeUnsavedUI() {
+            document.querySelectorAll('.file-item span').forEach(el => el.classList.remove('unsaved'));
+            openTabs.forEach(tab => {
+                if (tab.unsaved) {
+                    const txtObj = document.getElementById(`txt-${btoa(tab.path)}`);
+                    if (txtObj) txtObj.classList.add('unsaved');
+                }
+            });
+        }
+
+        // ══════════════════ TABS & EDITOR ══════════════════
+        function openFileAsTab(path, name) {
+            let existingTab = openTabs.find(t => t.path === path);
+            if (existingTab) { switchTab(path); return; }
+
+            fetch(`/api/file?key=${authKey}&path=${encodeURIComponent(path)}`)
+                .then(res => res.text())
+                .then(code => {
+                    let newModel = monaco.editor.createModel(code, 'java');
+                    openTabs.push({ path, name, model: newModel, unsaved: false });
+                    switchTab(path);
+                });
+        }
+
+        function switchTab(path) {
+            currentActivePath = path;
+            let tab = openTabs.find(t => t.path === path);
+            if (tab) {
+                document.getElementById('emptyState').style.display = 'none';
+                document.getElementById('editor-container').style.display = 'block';
+                editor.setModel(tab.model);
+            }
+            renderTabs();
+        }
+
+        function closeTab(e, path) {
+            e.stopPropagation();
+            let tabIndex = openTabs.findIndex(t => t.path === path);
+            if (tabIndex === -1) return;
+
+            if (openTabs[tabIndex].unsaved) {
+                if (!confirm(`'${openTabs[tabIndex].name}' didn't saved. Will you close it?`)) return;
+            }
+
+            openTabs[tabIndex].model.dispose();
+            openTabs.splice(tabIndex, 1);
+
+            if (openTabs.length === 0) {
+                currentActivePath = null;
+                document.getElementById('emptyState').style.display = 'flex';
+                document.getElementById('editor-container').style.display = 'none';
+            } else if (currentActivePath === path) {
+                switchTab(openTabs[openTabs.length - 1].path);
+            }
+            renderTabs();
+            updateFileTreeUnsavedUI();
+        }
+
+        function renderTabs() {
+            const area = document.getElementById('tabsArea');
+            area.innerHTML = '';
+            openTabs.forEach(tab => {
+                const isActive = tab.path === currentActivePath ? 'active' : '';
+                const isUnsaved = tab.unsaved ? 'unsaved' : '';
+                area.innerHTML += `
+                    <div class="tab ${isActive} ${isUnsaved}" onclick="switchTab('${tab.path}')" title="${tab.path}">
+                        <span class="tab-icon">&#x2615;</span>
+                        <span class="tab-name">${tab.name}</span>
+                        <span class="tab-close" onclick="closeTab(event, '${tab.path}')">&#x2715;</span>
+                    </div>`;
+            });
+        }
+
+        function saveCurrentFile() {
+            if (!currentActivePath) return;
+            let tab = openTabs.find(t => t.path === currentActivePath);
+            if (!tab) return;
+
+            setStatus('Kaydediliyor...');
+            fetch(`/api/file?key=${authKey}&path=${encodeURIComponent(tab.path)}`, {
+                method: 'POST', body: editor.getValue()
+            }).then(() => {
+                tab.unsaved = false;
+                renderTabs();
+                updateFileTreeUnsavedUI();
+                setStatus(`Kaydedildi: ${tab.name}`);
+            });
+        }
+
+        // ══════════════════ BUILD ══════════════════
+        function buildProject(projectName) {
+            openTabs.forEach(t => {
+                if (t.path.startsWith(projectName + '/') && t.unsaved) {
+                    fetch(`/api/file?key=${authKey}&path=${encodeURIComponent(t.path)}`, { method: 'POST', body: t.model.getValue() });
+                    t.unsaved = false;
+                }
+            });
+            renderTabs();
+            updateFileTreeUnsavedUI();
+
+            setStatus(`${projectName} Building...`);
+            fetch(`/api/build?key=${authKey}&project=${projectName}`, { method: 'POST' }).then(() => {
+                setTimeout(loadTree, 1000);
+                setTimeout(() => openLogViewerFor(projectName), 500);
+            });
+        }
+
+        // ══════════════════ CONTEXT MENU ══════════════════
+        let ctxMenu = document.createElement('div');
+        ctxMenu.className = 'context-menu';
+        document.body.appendChild(ctxMenu);
+        document.addEventListener('click', () => ctxMenu.style.display = 'none');
+
+        function showMenu(e, path, type, name) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            // Keep menu within viewport
+            const x = Math.min(e.pageX, window.innerWidth - 220);
+            const y = Math.min(e.pageY, window.innerHeight - 200);
+            ctxMenu.style.left = x + 'px';
+            ctxMenu.style.top = y + 'px';
+            ctxMenu.style.display = 'block';
+
+            if (type === 'root') {
+                ctxMenu.innerHTML = `<div class="ctx-item" onclick="createProject()"><span class="ctx-icon">&#x1F4E6;</span>Create a new project</div>`;
+            } else if (type === 'project') {
+                ctxMenu.innerHTML = `<div class="ctx-item danger" onclick="apiFs('delete', '${path}')"><span class="ctx-icon">&#x1F5D1;</span>Remove project</div>`;
+            } else if (type === 'folder') {
+                const isUnderMiercoles = path.includes('/miercoles');
+                const isMiercoles = name === 'miercoles';
+                ctxMenu.innerHTML = `
+                    <div class="ctx-item ${!isUnderMiercoles ? 'disabled' : ''}" onclick="apiFs('mkfile', '${path}')"><span class="ctx-icon">&#x2795;</span>New Java Class</div>
+                    <div class="ctx-item ${!isUnderMiercoles ? 'disabled' : ''}" onclick="apiFs('mkdir', '${path}')"><span class="ctx-icon">&#x1F4C1;</span>New Package</div>
+                    <hr>
+                    <div class="ctx-item ${isMiercoles ? 'disabled' : ''}" onclick="renameItem('${path}')"><span class="ctx-icon">&#x270F;</span>Rename</div>
+                    <div class="ctx-item danger ${isMiercoles ? 'disabled' : ''}" onclick="apiFs('delete', '${path}')"><span class="ctx-icon">&#x1F5D1;</span>Sil</div>
+                `;
+            } else {
+                ctxMenu.innerHTML = `
+                    <div class="ctx-item" onclick="renameItem('${path}')"><span class="ctx-icon">&#x270F;</span>Rename</div>
+                    <div class="ctx-item danger" onclick="apiFs('delete', '${path}')"><span class="ctx-icon">&#x1F5D1;</span>Delete</div>
+                `;
+            }
+        }
+
+        function createProject() {
+            let pName = prompt('Project name (without space, ex: LoginSystem):');
+            if (pName && pName.trim() !== '') {
+                apiFs('mkdir', pName.trim() + '/miercoles');
+            }
+        }
+
+        function renameItem(oldPath) {
+            let newPath = prompt('Enter the new name:', oldPath.split('/').pop());
+            if (newPath) {
+                let p = oldPath.split('/');
+                p.pop();
+                p.push(newPath);
+                apiFs('rename', oldPath, p.join('/'));
+            }
+        }
+
+        function apiFs(action, path, newPath) {
+            let targetPath = path;
+            if (action === 'mkfile') {
+                let name = prompt('Enter the class name (Ex: MyScript.java):');
+                if (!name) return;
+                if (!name.endsWith('.java')) name += '.java';
+                targetPath = path + '/' + name;
+            } else if (action === 'mkdir') {
+                if (path.endsWith('/miercoles')) {
+                    targetPath = path;
+                } else {
+                    let name = prompt('Enter a Packet/Folder name (ex: utils):');
+                    if (!name) return;
+                    targetPath = path + '/' + name;
+                }
+            } else if (action === 'delete') {
+                if (!confirm(`Are you sure? we cant get back them for you:\n${path}`)) return;
+                let tabIndex = openTabs.findIndex(t => t.path === path || t.path.startsWith(path + '/'));
+                if (tabIndex !== -1) {
+                    openTabs.splice(tabIndex, 1);
+                    currentActivePath = null;
+                    renderTabs();
+                }
+            }
+
+            fetch(`/api/fs?key=${authKey}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action, path: targetPath, newPath })
+            }).then(() => {
+                if (action === 'mkfile') {
+                    let parts = targetPath.split('/');
+                    let className = parts[parts.length - 1].replace('.java', '');
+                    let pkgIndex = parts.indexOf('miercoles');
+                    let pkg = 'miercoles';
+                    if (pkgIndex !== -1 && parts.length - 1 > pkgIndex + 1) {
+                        pkg = parts.slice(pkgIndex, parts.length - 1).join('.');
+                    }
+                    let template = `package ${pkg};\n\nimport livejava.api.LiveScript;\nimport org.bukkit.Bukkit;\n\npublic class ${className} extends LiveScript {\n    @Override\n    public void onStart() {\n    }\n\n    @Override\n    public void onStop() {\n    }\n}\n`;
+                    fetch(`/api/file?key=${authKey}&path=${encodeURIComponent(targetPath)}`, {
+                        method: 'POST', body: template
+                    }).then(() => { loadTree(); openFileAsTab(targetPath, className + '.java'); });
+                } else {
+                    loadTree();
+                }
+            });
+        }
+
+        // ══════════════════ LOG VIEWER ══════════════════
+        const logViewer = document.getElementById('logViewer');
+        const logHeader = document.getElementById('logHeader');
+
+        function toggleLogViewer() {
+            logViewer.style.display = logViewer.style.display === 'flex' ? 'none' : 'flex';
+        }
+
+        function openLogViewerFor(projName) {
+            logViewer.style.display = 'flex';
+            document.getElementById('logTitle').innerText = `Console: ${projName}`;
+            let fetches = 0;
+            let logInter = setInterval(() => {
+                fetches++;
+                fetch(`/api/logs?key=${authKey}&project=${projName}`)
+                    .then(r => r.text())
+                    .then(t => {
+                        document.getElementById('logContent').innerText = t;
+                        document.getElementById('logContent').scrollTop = 9999;
+                    });
+                if (fetches >= 5) clearInterval(logInter);
+            }, 1000);
+        }
+
+        // Drag
+        logHeader.onmousedown = function(e) {
+            if (e.target.closest('.log-close')) return;
+            let shiftX = e.clientX - logViewer.getBoundingClientRect().left;
+            let shiftY = e.clientY - logViewer.getBoundingClientRect().top;
+            function moveAt(pageX, pageY) {
+                logViewer.style.left = pageX - shiftX + 'px';
+                logViewer.style.top = pageY - shiftY + 'px';
+                logViewer.style.bottom = 'auto';
+                logViewer.style.right = 'auto';
+            }
+            function onMouseMove(e) { moveAt(e.pageX, e.pageY); }
+            document.addEventListener('mousemove', onMouseMove);
+            document.onmouseup = function() {
+                document.removeEventListener('mousemove', onMouseMove);
+                document.onmouseup = null;
+            };
+        };
+
+        function setStatus(t) { document.getElementById('status-text').innerText = t; }
+    </script>
+</body>
+</html>

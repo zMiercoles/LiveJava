@@ -1,0 +1,37 @@
+name: LiveJava
+version: '${project.version}'
+main: livejava.LiveJavaPlugin
+api-version: '1.20'
+commands:
+  livejava:
+    description: LiveJava main command
+    usage: /livejava <help|editor|build|unload|reload|debug|lang>
+permissions:
+  livejava.*:
+    description: Grants all LiveJava permissions
+    default: op
+    children:
+      livejava.editor: true
+      livejava.build: true
+      livejava.unload: true
+      livejava.reload: true
+      livejava.debug: true
+      livejava.lang: true
+  livejava.editor:
+    description: Access the Web IDE editor
+    default: op
+  livejava.build:
+    description: Compile and start projects
+    default: op
+  livejava.unload:
+    description: Unload projects from memory
+    default: op
+  livejava.reload:
+    description: Reload plugin configuration
+    default: op
+  livejava.debug:
+    description: View debug/diagnostics report
+    default: op
+  livejava.lang:
+    description: Change plugin language
+    default: op
