@@ -35,6 +35,7 @@ public class LiveJavaPlugin extends JavaPlugin implements TabCompleter {
 
     public java.util.Map<String, String> getProjectStatuses() { return projectStatuses; }
     public java.util.Map<String, String> getProjectLogs() { return projectLogs; }
+    public RuntimeCompiler getCompiler() { return compiler; }
 
     @Override
     public void onEnable() {

@@ -17,7 +17,7 @@ public class ScriptManager {
     private final Plugin activePlugin;
     private final Logger logger;
 
-    // Çalışan projeleri (Workspace) System Loader ile tutuyoruz
+    // We store running projects (Workspace) with the System Loader
     private final Map<String, ScriptContext> activeScripts = new ConcurrentHashMap<>();
 
     public ScriptManager(Plugin plugin) {
@@ -26,7 +26,7 @@ public class ScriptManager {
     }
 
     /**
-     * Projenin sahip olduğu TÜM ScriptInstance'ları listesinde tutar.
+     * Holds all ScriptInstances owned by a project.
      */
     private static class ScriptContext {
         final List<LiveScript> scriptInstances;
@@ -39,10 +39,10 @@ public class ScriptManager {
     }
 
     /**
-     * Koca bir klasördeki (projedeki) derlenmiş classları tarayıp, LiveScript olanları tespit edip başlatır.
+     * Scans a full project folder for compiled classes, detects LiveScript implementations, and starts them.
      */
     public boolean loadAndStartProject(String projectId, File classDir) {
-        // Eğer zaten bir Workspace çalışıyorsa, yenisini yüklemeden önce tamamını temizle
+        // If a workspace is already running for this project, correctly clear it entirely before loading the new one
         if (activeScripts.containsKey(projectId)) {
             stop(projectId);
         }
@@ -59,7 +59,7 @@ public class ScriptManager {
                 String className = getClassNameFromFile(classDir, f);
                 Class<?> clazz = projectClassLoader.loadClass(className);
 
-                // Eğer LiveScript implement edilmişse, interface değilse ve abstract değilse tespit et
+                // Detect if LiveScript is implemented, is not an interface, and is not abstract
                 if (LiveScript.class.isAssignableFrom(clazz) && !clazz.isInterface() && !java.lang.reflect.Modifier.isAbstract(clazz.getModifiers())) {
                     LiveScript instance = (LiveScript) clazz.getDeclaredConstructor().newInstance();
                     instances.add(instance);
@@ -67,25 +67,25 @@ public class ScriptManager {
             }
 
             if (instances.isEmpty()) {
-                logger.warning("[LiveJava] Projede LiveScript arayüzünü uygulayan(implement) hiçbir ana sınıf bulunamadı. Sadece yan sınıflar derlendi.");
+                logger.warning("[LiveJava] No main class implementing LiveScript interface found in the project. Only side classes were compiled.");
             }
 
             activeScripts.put(projectId, new ScriptContext(instances, projectClassLoader));
 
-            // Tespit edilen bütün ana class'ların onStart'ını çalıştır
+            // Execute onStart for all detected main classes
             for (LiveScript script : instances) {
                 try {
                     script.onStart();
                 } catch (Exception e) {
-                    logger.severe("[LiveJava] '" + script.getClass().getSimpleName() + "' sınıfının onStart işlemi patladı!");
+                    logger.severe("[LiveJava] The onStart process of class '" + script.getClass().getSimpleName() + "' has failed!");
                     e.printStackTrace();
                 }
             }
-            logger.info("§a[LiveJava] Proje '" + projectId + "' (" + instances.size() + " ana eklenti scripti ile) başarıyla başlatıldı.");
+            logger.info("§a[LiveJava] Project '" + projectId + "' (with " + instances.size() + " main plugin scripts) started successfully.");
             return true;
 
         } catch (Exception e) {
-            logger.severe("Proje '" + projectId + "' yüklenirken hata oluştu!");
+            logger.severe("An error occurred while loading project '" + projectId + "'!");
             e.printStackTrace();
             return false;
         }
@@ -99,18 +99,18 @@ public class ScriptManager {
         for (LiveScript scriptInstance : context.scriptInstances) {
             try {
                 scriptInstance.onStop();
-                scriptInstance.cleanupBase(); // Burası harika sistemin otomatik çöpe atıcısı (komutları siler)
+                scriptInstance.cleanupBase(); // Automatic garbage collection base (removes commands/events safely)
             } catch (Exception e) {
-                logger.severe("LiveScript stoplama hatası! Sınıf: " + scriptInstance.getClass().getSimpleName());
+                logger.severe("LiveScript stop error! Class: " + scriptInstance.getClass().getSimpleName());
                 e.printStackTrace();
             }
         }
 
         try {
             context.classLoader.close();
-            logger.info("§c[LiveJava] Proje '" + projectId + "' tamamen durduruldu ve bellek serbest bırakıldı.");
+            logger.info("§c[LiveJava] Project '" + projectId + "' stopped entirely and memory freed.");
         } catch (Exception e) {
-            logger.severe("ClassLoader kapatılamadı: " + projectId);
+            logger.severe("ClassLoader could not be closed: " + projectId);
             e.printStackTrace();
         }
     }

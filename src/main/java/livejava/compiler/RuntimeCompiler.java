@@ -22,6 +22,45 @@ public class RuntimeCompiler {
         }
     }
 
+    public static class LintResult {
+        public final int line;
+        public final int column;
+        public final String message;
+        public LintResult(int line, int column, String message) {
+            this.line = line; this.column = column; this.message = message;
+        }
+    }
+
+    public java.util.List<LintResult> lintSingleFile(String fileName, String sourceCode, File pluginsDir) {
+        JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
+        if (compiler == null) return java.util.Collections.emptyList();
+
+        DiagnosticCollector<JavaFileObject> diagnostics = new DiagnosticCollector<>();
+        StandardJavaFileManager fileManager = compiler.getStandardFileManager(diagnostics, null, null);
+
+        SimpleJavaFileObject sourceFile = new SimpleJavaFileObject(java.net.URI.create("string:///" + fileName), JavaFileObject.Kind.SOURCE) {
+            @Override public CharSequence getCharContent(boolean ignoreEncodingErrors) { return sourceCode; }
+        };
+
+        String fullClasspath = buildClasspath(pluginsDir);
+        String javaVersion = System.getProperty("java.specification.version");
+
+        Iterable<String> options = Arrays.asList("-target", javaVersion, "-source", javaVersion, "-classpath", fullClasspath);
+
+        JavaCompiler.CompilationTask task = compiler.getTask(null, fileManager, diagnostics, options, null, Arrays.asList(sourceFile));
+        task.call(); // Sadece arka planda derlemeyi simüle et, çıktı oluşturma
+
+        java.util.List<LintResult> errors = new java.util.ArrayList<>();
+        for (Diagnostic<? extends JavaFileObject> d : diagnostics.getDiagnostics()) {
+            if (d.getKind() == Diagnostic.Kind.ERROR) {
+                errors.add(new LintResult((int) d.getLineNumber(), (int) d.getColumnNumber(), d.getMessage(null)));
+            }
+        }
+
+        try { fileManager.close(); } catch (IOException ignored) {}
+        return errors;
+    }
+
     public CompilationResult compileProject(File srcDir, File outputDir, File pluginsDir) {
         JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
         if (compiler == null) {
@@ -43,8 +82,6 @@ public class RuntimeCompiler {
         if (!outputDir.exists()) outputDir.mkdirs();
 
         String fullClasspath = buildClasspath(pluginsDir);
-
-        // Sistemin kendi Java sürümünü (örneğin 17 veya 21) otomatik al
         String javaVersion = System.getProperty("java.specification.version");
 
         Iterable<String> options = Arrays.asList(
@@ -67,7 +104,7 @@ public class RuntimeCompiler {
 
         if (!success) {
             errorString = diagnostics.getDiagnostics().stream()
-                    .map(d -> "File: " + d.getSource().getName() + " - Line " + d.getLineNumber() + " [" + d.getKind() + "]: " + d.getMessage(null))
+                    .map(d -> "File: " + (d.getSource() != null ? d.getSource().getName() : "unknown") + " - Line " + d.getLineNumber() + " [" + d.getKind() + "]: " + d.getMessage(null))
                     .collect(Collectors.joining("\n"));
         }
 
@@ -86,6 +123,18 @@ public class RuntimeCompiler {
         try { classPaths.add(new File(livejava.api.LiveScript.class.getProtectionDomain().getCodeSource().getLocation().toURI()).getAbsolutePath()); } catch (Exception ignored) {}
         try { classPaths.add(new File(Class.forName("net.kyori.adventure.audience.Audience").getProtectionDomain().getCodeSource().getLocation().toURI()).getAbsolutePath()); } catch (Exception ignored) {}
         try { classPaths.add(new File(Class.forName("net.kyori.adventure.text.Component").getProtectionDomain().getCodeSource().getLocation().toURI()).getAbsolutePath()); } catch (Exception ignored) {}
+
+        // Automatically detect NMS core jar
+        String[] nmsClasses = {
+                "net.minecraft.server.MinecraftServer",
+                "net.minecraft.server.dedicated.DedicatedServer",
+                "net.minecraft.network.chat.Component"
+        };
+        for (String nmsClassName : nmsClasses) {
+            try {
+                classPaths.add(new File(Class.forName(nmsClassName).getProtectionDomain().getCodeSource().getLocation().toURI()).getAbsolutePath());
+            } catch (Exception ignored) {}
+        }
 
         if (pluginsDir != null && pluginsDir.exists()) {
             addJarsRecursively(pluginsDir, classPaths);

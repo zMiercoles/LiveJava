@@ -1,15 +1,16 @@
-# LiveJava Konfigürasyon Dosyası
+# LiveJava Configuration File
 
 # language: Plugin language (en = English, tr = Türkçe)
 language: "en"
 
-# web-ide-port: Tarayıcınız üzerinden kod yazacağınız VS Code arayüzünün yayınlandığı yoldur.
-# VDS Kullanıyorsanız 8080 olarak bırakabilirsiniz. (Giriş: http://vds-ip:8080)
-# Magmanode / Panel gibi firmalar kullanıyorsanız,
-# firmanın panelindeki 'Ağ (Network)' sekmesinden yeni bir Allocation (Port) oluşturup buraya yazın.
+# web-ide-port: The port where the VS Code-like Web IDE will be broadcasted.
+# If you are using a VPS/Dedicated Server, you can leave it as 8080. (Access via: http://vds-ip:8080)
+# If you are using a host like Magmanode or Pterodactyl Panel,
+# you must allocate a new port from the 'Network' tab on your host's panel and type it here.
+# After you change it type "/livejava editor reload" to reload port
 web-ide-port: 8080
 
-# allowed-ips: Web IDE'ye erişebilecek ek IP adresleri.
-# /livejava editor yazan oyuncunun IP'si otomatik eklenir.
-# Buraya ekstra IP'ler yazabilirsiniz (ör: evinizdeki sabit IP).
+# allowed-ips: Additional IP addresses allowed to access the Web IDE.
+# The IP of the player who types '/livejava editor' in-game is automatically allowed.
+# You can add extra static IPs here (e.g., your home static IP) to bypass the game command.
 allowed-ips: []

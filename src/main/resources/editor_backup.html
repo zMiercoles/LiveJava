@@ -782,16 +782,7 @@
                 cursorSmoothCaretAnimation: 'on',
                 renderLineHighlight: 'all',
                 bracketPairColorization: { enabled: true },
-                padding: { top: 8, bottom: 8 },
-                suggest: {
-                    preview: true,
-                    showInlineDetails: true
-                },
-                inlineSuggest: {
-                    enabled: true,
-                    showToolbar: "always"
-                },
-                wordBasedSuggestions: "allDocuments"
+                padding: { top: 8, bottom: 8 }
             });
 
             editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, saveCurrentFile);

@@ -9,28 +9,28 @@ import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 
 /**
- * LiveJava üzerinden runtime'da derlenecek ve çalıştırılacak tüm betikler
- * bu abstract sınıfı (soyut sınıfı) kullanmak (extends) zorundadır.
+ * All scripts to be compiled and executed at runtime via LiveJava
+ * must extend this abstract class.
  */
 public abstract class LiveScript {
 
-    // Bu script oluşturulduğunda hafızaya alınan komutların listesi
-    // Script durdurulunca (reload atılınca) bu komutlar otomatik çöpe atılır (silinir).
+    // List of commands loaded into memory when this script is executed
+    // When the script is stopped (or reloaded), these commands are automatically garbage collected.
     private final List<Command> registeredCommands = new ArrayList<>();
 
     /**
-     * Script hafızaya yüklenip başlatıldığında tetiklenir.
-     * Event kayıtları, komut oluşturma veya zamanlayıcı (task) başlatma buralarda yapılır.
+     * Triggered when the script is loaded into memory and started.
+     * Event registrations, command creations, or tasks should be initialized here.
      */
     public abstract void onStart();
 
     /**
-     * Script durdurulduğunda veya LiveJava plugin'i kapatıldığında tetiklenir.
+     * Triggered when the script is stopped or when the LiveJava plugin is disabled.
      */
     public abstract void onStop();
 
     /**
-     * Script durdurulduğunda LiveJava tarafından arka planda (otomatik) çağrılan temizleme mekanizması.
+     * Background (automatic) cleanup mechanism called by LiveJava when the script stops.
      */
     public final void cleanupBase() {
         for (Command cmd : registeredCommands) {
@@ -38,24 +38,24 @@ public abstract class LiveScript {
         }
         registeredCommands.clear();
 
-        // Otomatik Listener Temizliği (Script eğer Listener implement etmişse hayalet eventleri siler)
+        // Automatic Listener Cleanup (Deletes ghost events if the script implements Listener)
         if (this instanceof org.bukkit.event.Listener) {
             org.bukkit.event.HandlerList.unregisterAll((org.bukkit.event.Listener) this);
         }
     }
 
     /**
-     * Skript vari mükemmel kolaylıkta Komut oluşturma fonksiyonu.
-     * Kullanım:
-     * command("merhaba", "Harika bir komut")
-     *      .execute((sender, args) -> sender.sendMessage("Selam!"))
+     * Skript-like beautifully easy command creation method.
+     * Usage:
+     * command("hello", "A great command")
+     *      .execute((sender, args) -> sender.sendMessage("Hi!"))
      *      .register();
      */
     public LiveCommandBuilder command(String name, String description) {
         return new LiveCommandBuilder(name, description, this);
     }
 
-    // Builder Sınıfı Mimari
+    // Builder Class Architecture
     public class LiveCommandBuilder {
         private final String name;
         private final String description;
@@ -93,7 +93,7 @@ public abstract class LiveScript {
                         try {
                             executeLogic.accept(sender, args);
                         } catch (Exception e) {
-                            sender.sendMessage("§cKomut çalışırken bir hata oluştu!");
+                            sender.sendMessage("§cAn error occurred while executing the command!");
                             e.printStackTrace();
                         }
                         return true;
@@ -110,10 +110,10 @@ public abstract class LiveScript {
                 }
             };
 
-            // Sisteme enjekte et ve oyunculara kırmızı çizgiyi yok edecek paketi gönder!
+            // Inject to system and send the packet that will remove the red line indicator!
             CommandAPI.register(dynamicCommand);
 
-            // Çöpe atıcı sisteme kodlanan komutu kaydet (reload atınca temizlesin diye)
+            // Register the generated command into the garbage collector (to clean up upon reload)
             owner.registeredCommands.add(dynamicCommand);
         }
     }
