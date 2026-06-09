@@ -1039,7 +1039,7 @@
                     <div class="ctx-item ${!isUnderMiercoles ? 'disabled' : ''}" onclick="apiFs('mkdir', '${path}')"><span class="ctx-icon">&#x1F4C1;</span>New Package</div>
                     <hr>
                     <div class="ctx-item ${isMiercoles ? 'disabled' : ''}" onclick="renameItem('${path}')"><span class="ctx-icon">&#x270F;</span>Rename</div>
-                    <div class="ctx-item danger ${isMiercoles ? 'disabled' : ''}" onclick="apiFs('delete', '${path}')"><span class="ctx-icon">&#x1F5D1;</span>Sil</div>
+                    <div class="ctx-item danger ${isMiercoles ? 'disabled' : ''}" onclick="apiFs('delete', '${path}')"><span class="ctx-icon">&#x1F5D1;</span>Delete</div>
                 `;
             } else {
                 ctxMenu.innerHTML = `
