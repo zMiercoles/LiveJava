@@ -45,7 +45,7 @@ public class RuntimeCompiler {
         String fullClasspath = buildClasspath(pluginsDir);
         String javaVersion = System.getProperty("java.specification.version");
 
-        Iterable<String> options = Arrays.asList("-target", javaVersion, "-source", javaVersion, "-classpath", fullClasspath);
+        Iterable<String> options = Arrays.asList("-target", javaVersion, "-source", javaVersion, "-classpath", fullClasspath, "-proc:none");
 
         JavaCompiler.CompilationTask task = compiler.getTask(null, fileManager, diagnostics, options, null, Arrays.asList(sourceFile));
         task.call(); // Sadece arka planda derlemeyi simüle et, çıktı oluşturma
@@ -88,7 +88,8 @@ public class RuntimeCompiler {
                 "-d", outputDir.getAbsolutePath(),
                 "-target", javaVersion,
                 "-source", javaVersion,
-                "-classpath", fullClasspath);
+                "-classpath", fullClasspath,
+                "-proc:none");
 
         JavaCompiler.CompilationTask task = compiler.getTask(
                 null,

@@ -763,6 +763,13 @@
         }
 
         let editor;
+        // Safe Fetch wrapper sending Token via Header instead of URL
+        function apiFetch(url, options = {}) {
+            if (!options.headers) options.headers = {};
+            options.headers['Authorization'] = 'Bearer ' + authKey;
+            return fetch(url, options);
+        }
+
         let openTabs = [];
         let currentActivePath = null;
         let treeDataCache = [];
@@ -814,7 +821,7 @@
         document.getElementById('refreshBtn').addEventListener('click', loadTree);
 
         function loadTree() {
-            fetch(`/api/tree?key=${authKey}`)
+            apiFetch(`/api/tree`)
                 .then(res => res.json())
                 .then(data => {
                     treeDataCache = data;
@@ -918,7 +925,7 @@
             let existingTab = openTabs.find(t => t.path === path);
             if (existingTab) { switchTab(path); return; }
 
-            fetch(`/api/file?key=${authKey}&path=${encodeURIComponent(path)}`)
+            apiFetch(`/api/file?path=${encodeURIComponent(path)}`)
                 .then(res => res.text())
                 .then(code => {
                     let newModel = monaco.editor.createModel(code, 'java');
@@ -982,7 +989,7 @@
             if (!tab) return;
 
             setStatus('Kaydediliyor...');
-            fetch(`/api/file?key=${authKey}&path=${encodeURIComponent(tab.path)}`, {
+            apiFetch(`/api/file?path=${encodeURIComponent(tab.path)}`, {
                 method: 'POST', body: editor.getValue()
             }).then(() => {
                 tab.unsaved = false;
@@ -996,7 +1003,7 @@
         function buildProject(projectName) {
             openTabs.forEach(t => {
                 if (t.path.startsWith(projectName + '/') && t.unsaved) {
-                    fetch(`/api/file?key=${authKey}&path=${encodeURIComponent(t.path)}`, { method: 'POST', body: t.model.getValue() });
+                    apiFetch(`/api/file?path=${encodeURIComponent(t.path)}`, { method: 'POST', body: t.model.getValue() });
                     t.unsaved = false;
                 }
             });
@@ -1004,7 +1011,7 @@
             updateFileTreeUnsavedUI();
 
             setStatus(`${projectName} Building...`);
-            fetch(`/api/build?key=${authKey}&project=${projectName}`, { method: 'POST' }).then(() => {
+            apiFetch(`/api/build?project=${projectName}`, { method: 'POST' }).then(() => {
                 setTimeout(loadTree, 1000);
                 setTimeout(() => openLogViewerFor(projectName), 500);
             });
@@ -1091,7 +1098,7 @@
                 }
             }
 
-            fetch(`/api/fs?key=${authKey}`, {
+            apiFetch(`/api/fs`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ action, path: targetPath, newPath })
@@ -1105,7 +1112,7 @@
                         pkg = parts.slice(pkgIndex, parts.length - 1).join('.');
                     }
                     let template = `package ${pkg};\n\nimport livejava.api.LiveScript;\nimport org.bukkit.Bukkit;\n\npublic class ${className} extends LiveScript {\n    @Override\n    public void onStart() {\n    }\n\n    @Override\n    public void onStop() {\n    }\n}\n`;
-                    fetch(`/api/file?key=${authKey}&path=${encodeURIComponent(targetPath)}`, {
+                    apiFetch(`/api/file?path=${encodeURIComponent(targetPath)}`, {
                         method: 'POST', body: template
                     }).then(() => { loadTree(); openFileAsTab(targetPath, className + '.java'); });
                 } else {
@@ -1128,7 +1135,7 @@
             let fetches = 0;
             let logInter = setInterval(() => {
                 fetches++;
-                fetch(`/api/logs?key=${authKey}&project=${projName}`)
+                apiFetch(`/api/logs?project=${projName}`)
                     .then(r => r.text())
                     .then(t => {
                         document.getElementById('logContent').innerText = t;

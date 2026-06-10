@@ -32,10 +32,30 @@ public class LiveJavaPlugin extends JavaPlugin implements TabCompleter {
 
     private final java.util.Map<String, String> projectStatuses = new java.util.concurrent.ConcurrentHashMap<>();
     private final java.util.Map<String, String> projectLogs     = new java.util.concurrent.ConcurrentHashMap<>();
+    private final java.util.Set<CommandSender> uncensoredUsers = java.util.concurrent.ConcurrentHashMap.newKeySet();
 
     public java.util.Map<String, String> getProjectStatuses() { return projectStatuses; }
     public java.util.Map<String, String> getProjectLogs() { return projectLogs; }
     public RuntimeCompiler getCompiler() { return compiler; }
+
+    public void broadcastIdeLog(String action, String ip) {
+        String censored = censorIp(ip);
+        for (org.bukkit.entity.Player p : Bukkit.getOnlinePlayers()) {
+            if (p.isOp() || p.hasPermission("livejava.logs")) {
+                String displayIp = uncensoredUsers.contains(p) ? ip : censored;
+                p.sendMessage("§8[§eLiveJava§8] §7" + action + " §8(IP: §f" + displayIp + "§8)");
+            }
+        }
+    }
+
+    private String censorIp(String ip) {
+        if (ip == null) return "***.***.***.***";
+        String[] parts = ip.split("\\.");
+        if (parts.length == 4) {
+            return "***.***.***." + parts[3];
+        }
+        return "***.***.***.***";
+    }
 
     @Override
     public void onEnable() {
@@ -281,6 +301,22 @@ public class LiveJavaPlugin extends JavaPlugin implements TabCompleter {
             return true;
         }
 
+        // ── uncensorip ──────────────────────────────────────────────────────
+        if (sub.equals("uncensorip")) {
+            if (!sender.hasPermission("livejava.logs")) {
+                sendBox(sender, "§c§lERROR", lang.get(Lang.Key.NO_PERMISSION));
+                return true;
+            }
+            if (uncensoredUsers.contains(sender)) {
+                uncensoredUsers.remove(sender);
+                sendBox(sender, "§a§lOK", "§7IP addresses are now §ccensored §7in IDE logs.");
+            } else {
+                uncensoredUsers.add(sender);
+                sendBox(sender, "§a§lOK", "§7IP addresses are now §avisible §7in IDE logs.");
+            }
+            return true;
+        }
+
         // ── reload ───────────────────────────────────────────────────────────
         if (sub.equals("reload")) {
             reloadConfig();
@@ -360,6 +396,7 @@ public class LiveJavaPlugin extends JavaPlugin implements TabCompleter {
             completions.add("unload");
             completions.add("reload");
             completions.add("debug");
+            completions.add("uncensorip");
             completions.add("lang");
             completions.add("help");
         } else if (args.length == 2 && args[0].equalsIgnoreCase("editor")) {
@@ -390,6 +427,20 @@ public class LiveJavaPlugin extends JavaPlugin implements TabCompleter {
 
     // ── Build ────────────────────────────────────────────────────────────────
 
+    public ScriptManager getScriptManager() { return scriptManager; }
+
+    public void deleteRecursively(File file) {
+        if (file.isDirectory()) {
+            File[] children = file.listFiles();
+            if (children != null) {
+                for (File child : children) {
+                    deleteRecursively(child);
+                }
+            }
+        }
+        file.delete();
+    }
+
     public void buildProject(String projectName, CommandSender sender) {
         File projectDir = new File(getDataFolder(), "scripts/" + projectName);
         if (!projectDir.exists()) {
@@ -398,6 +449,12 @@ public class LiveJavaPlugin extends JavaPlugin implements TabCompleter {
         }
 
         File tempDir = new File(getDataFolder(), "temp_classes/" + projectName);
+
+        // GHOST CLASS FIX: Derlemeden önce mevcut tüm eski derlenmiş classları tamamen yok et!
+        if (tempDir.exists()) {
+            deleteRecursively(tempDir);
+        }
+
         projectStatuses.put(projectName, "building");
         projectLogs.put(projectName, "[BUILD] Building: " + projectName + "\n");
 

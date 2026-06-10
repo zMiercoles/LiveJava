@@ -53,16 +53,27 @@ public class WebIDEServer {
     }
 
     private boolean isAuthorized(HttpExchange exchange) throws IOException {
-        String query = exchange.getRequestURI().getQuery();
-        if (query == null) return false;
-
         String token = null;
-        for (String p : query.split("&")) {
-            if (p.startsWith("key=")) {
-                token = p.split("=")[1];
-                break;
+
+        // 1. Check Authorization Header (More secure, doesn't log in URL history)
+        String authHeader = exchange.getRequestHeaders().getFirst("Authorization");
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            token = authHeader.substring(7);
+        }
+
+        // 2. Fallback to URL query for the very first HTML loading
+        if (token == null) {
+            String query = exchange.getRequestURI().getQuery();
+            if (query != null) {
+                for (String p : query.split("&")) {
+                    if (p.startsWith("key=")) {
+                        token = p.split("=")[1];
+                        break;
+                    }
+                }
             }
         }
+
         if (token == null || !activeKeys.containsKey(token)) return false;
 
         // Gelen isteğin IP adresini al
@@ -70,16 +81,15 @@ public class WebIDEServer {
 
         // Token'a bağlı IP kontrolü
         String boundIp = activeKeys.get(token);
+        // Security Fix: IP MUST match the token's origin IP exactly.
+        // No automatic localhost bypass, preventing SSRF attacks.
         if (boundIp != null && boundIp.equals(requestIp)) return true;
 
         // Config'deki whitelist kontrolü
         List<String> allowedIps = plugin.getConfig().getStringList("allowed-ips");
         if (allowedIps.contains(requestIp)) return true;
 
-        // Localhost her zaman geçerli (local geliştirme için)
-        if (requestIp.equals("127.0.0.1") || requestIp.equals("0:0:0:0:0:0:0:1")) return true;
-
-        logger.warning("[LiveJava] Yetkisiz IDE erişim denemesi! IP: " + requestIp + " | Token: " + token);
+        logger.warning("[LiveJava] Unauthorized IDE access blocked! IP: " + requestIp);
         return false;
     }
 
@@ -118,6 +128,10 @@ public class WebIDEServer {
 
             String html = new String(Files.readAllBytes(editorFile.toPath()), StandardCharsets.UTF_8);
             exchange.getResponseHeaders().set("Content-Type", "text/html; charset=UTF-8");
+
+            String requestIp = exchange.getRemoteAddress().getAddress().getHostAddress();
+            plugin.broadcastIdeLog("Web IDE Opened", requestIp);
+
             sendResponse(exchange, 200, html);
         }
     }
@@ -125,7 +139,6 @@ public class WebIDEServer {
     private class TreeApiHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
-            exchange.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
             if (!isAuthorized(exchange)) { sendResponse(exchange, 401, "[]"); return; }
 
             File scriptsDir = new File(plugin.getDataFolder(), "scripts");
@@ -167,7 +180,6 @@ public class WebIDEServer {
     private class FileApiHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
-            exchange.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
             if (!isAuthorized(exchange)) { sendResponse(exchange, 401, "Error"); return; }
 
             String query = exchange.getRequestURI().getQuery();
@@ -179,8 +191,11 @@ public class WebIDEServer {
             File scriptsDir = new File(plugin.getDataFolder(), "scripts");
             File targetFile = new File(scriptsDir, relativePath);
 
-            // Path Traversal koruması: hedef dosyanın scripts klasörü dışına çıkmasını engelle
-            if (!targetFile.getCanonicalPath().startsWith(scriptsDir.getCanonicalPath())) {
+            // Path Traversal koruması (NIO Path strict checks)
+            java.nio.file.Path targetPathObj = targetFile.getCanonicalFile().toPath();
+            java.nio.file.Path scriptsPathObj = scriptsDir.getCanonicalFile().toPath();
+
+            if (!targetPathObj.startsWith(scriptsPathObj)) {
                 sendResponse(exchange, 403, "Erişim engellendi: Geçersiz dosya yolu.");
                 return;
             }
@@ -195,6 +210,10 @@ public class WebIDEServer {
                 if (!targetFile.getParentFile().exists()) targetFile.getParentFile().mkdirs();
                 String newCode = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
                 Files.write(targetFile.toPath(), newCode.getBytes(StandardCharsets.UTF_8));
+
+                String requestIp = exchange.getRemoteAddress().getAddress().getHostAddress();
+                plugin.broadcastIdeLog("File Saved: " + targetFile.getName(), requestIp);
+
                 sendResponse(exchange, 200, "Kayıt Başarılı.");
             } else sendResponse(exchange, 405, "Method Not Allowed");
         }
@@ -204,7 +223,6 @@ public class WebIDEServer {
     private class FsApiHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
-            exchange.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
             if (!isAuthorized(exchange)) { sendResponse(exchange, 401, "Error"); return; }
 
             if ("POST".equalsIgnoreCase(exchange.getRequestMethod())) {
@@ -216,8 +234,11 @@ public class WebIDEServer {
                     File scriptsDir = new File(plugin.getDataFolder(), "scripts");
                     File target = new File(scriptsDir, path);
 
-                    // Path Traversal koruması
-                    if (!target.getCanonicalPath().startsWith(scriptsDir.getCanonicalPath())) {
+                    // Path Traversal koruması (NIO)
+                    java.nio.file.Path targetPathObj = target.getCanonicalFile().toPath();
+                    java.nio.file.Path scriptsPathObj = scriptsDir.getCanonicalFile().toPath();
+
+                    if (!targetPathObj.startsWith(scriptsPathObj)) {
                         sendResponse(exchange, 403, "Erişim engellendi: Geçersiz dosya yolu.");
                         return;
                     }
@@ -229,8 +250,9 @@ public class WebIDEServer {
                         String newPath = (String) obj.get("newPath");
                         File dest = new File(scriptsDir, newPath);
 
-                        // Hedef yol için de Path Traversal koruması
-                        if (!dest.getCanonicalPath().startsWith(scriptsDir.getCanonicalPath())) {
+                        // Hedef yol için de Path Traversal koruması (NIO)
+                        java.nio.file.Path destPathObj = dest.getCanonicalFile().toPath();
+                        if (!destPathObj.startsWith(scriptsPathObj)) {
                             sendResponse(exchange, 403, "Erişim engellendi: Geçersiz hedef yolu.");
                             return;
                         }
@@ -260,7 +282,6 @@ public class WebIDEServer {
     private class BuildApiHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
-            exchange.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
             if (!isAuthorized(exchange)) { sendResponse(exchange, 401, "Error"); return; }
             if ("POST".equalsIgnoreCase(exchange.getRequestMethod())) {
                 String query = exchange.getRequestURI().getQuery();
@@ -289,7 +310,6 @@ public class WebIDEServer {
     private class LogApiHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
-            exchange.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
             if (!isAuthorized(exchange)) { sendResponse(exchange, 401, "Error"); return; }
 
             String query = exchange.getRequestURI().getQuery();
