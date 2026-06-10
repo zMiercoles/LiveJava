@@ -28,7 +28,6 @@ public class WebIDEServer {
     private final int port;
     private final Logger logger;
 
-    // Güvenlik: Token → IP mapping (her token sadece oluşturan oyuncunun IP'sinden geçerli)
     private final Map<String, String> activeKeys = new ConcurrentHashMap<>();
 
     public WebIDEServer(LiveJavaPlugin plugin, int port) {
@@ -40,7 +39,7 @@ public class WebIDEServer {
     public String generateEditorKey(String playerIp) {
         String key = UUID.randomUUID().toString().replace("-", "").substring(0, 16);
         activeKeys.put(key, playerIp);
-        logger.info("[LiveJava] Yeni editor token üretildi. Bağlı IP: " + playerIp);
+        logger.info("[LiveJava] Generated new editor token. Connected IP: " + playerIp);
         return key;
     }
 
@@ -55,7 +54,7 @@ public class WebIDEServer {
     private boolean isAuthorized(HttpExchange exchange) throws IOException {
         String token = null;
 
-        // 1. Check Authorization Header (More secure, doesn't log in URL history)
+        // 1. Check Authorization Header
         String authHeader = exchange.getRequestHeaders().getFirst("Authorization");
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             token = authHeader.substring(7);
@@ -76,13 +75,13 @@ public class WebIDEServer {
 
         if (token == null || !activeKeys.containsKey(token)) return false;
 
-        // Gelen isteğin IP adresini al
+        // ip alion
         String requestIp = exchange.getRemoteAddress().getAddress().getHostAddress();
 
-        // Token'a bağlı IP kontrolü
+        // ip kontrolu panpa
         String boundIp = activeKeys.get(token);
-        // Security Fix: IP MUST match the token's origin IP exactly.
-        // No automatic localhost bypass, preventing SSRF attacks.
+        // fix1
+        // ssrf fix
         if (boundIp != null && boundIp.equals(requestIp)) return true;
 
         // Config'deki whitelist kontrolü
@@ -105,7 +104,7 @@ public class WebIDEServer {
             server.createContext("/api/file", new FileApiHandler());
             server.createContext("/api/build", new BuildApiHandler());
             server.createContext("/api/fs", new FsApiHandler()); // Dosya Silme/Yeniden adlandırma işleri
-            server.createContext("/api/logs", new LogApiHandler()); // YENİ: Log Görüntüleyici
+            server.createContext("/api/logs", new LogApiHandler()); // Log Görüntüleyici
             server.setExecutor(null);
             server.start();
         } catch (Exception e) {
@@ -121,10 +120,10 @@ public class WebIDEServer {
     private class EditorFrontendHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
-            if (!isAuthorized(exchange)) { sendResponse(exchange, 401, "Yetkisiz Erisim! Lutfen oyundan /livejava editor yazip link aliniz."); return; }
+            if (!isAuthorized(exchange)) { sendResponse(exchange, 401, "Yetkisiz Erisim! Lutfen oyundan /livejava editor yazip link aliniz."); return; } // ORROSPU ÇOCUĞU ÖNLEYİCİ
 
             File editorFile = new File(plugin.getDataFolder(), "editor.html");
-            if (!editorFile.exists()) { sendResponse(exchange, 404, "editor.html bulunamadi!"); return; }
+            if (!editorFile.exists()) { sendResponse(exchange, 404, "editor.html bulunamadi!"); return; } // editor yok nereye gidiyon aptal oc
 
             String html = new String(Files.readAllBytes(editorFile.toPath()), StandardCharsets.UTF_8);
             exchange.getResponseHeaders().set("Content-Type", "text/html; charset=UTF-8");
@@ -219,7 +218,7 @@ public class WebIDEServer {
         }
     }
 
-    // YENİ: Sağ Tık İşlemleri için Dosya Sistemi Yoneticisi (FS)
+    // Sağ Tık İşlemleri için Dosya Sistemi Yoneticisi (FS)
     private class FsApiHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
