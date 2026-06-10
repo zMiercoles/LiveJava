@@ -178,17 +178,17 @@ public class LiveJavaPlugin extends JavaPlugin implements TabCompleter {
 
         if (args.length == 0 || args[0].equalsIgnoreCase("help")) {
             sendBox(sender, lang.get(Lang.Key.HELP_TITLE),
-                "",
-                lang.get(Lang.Key.HELP_EDITOR),
-                lang.get(Lang.Key.HELP_EDITOR_REMOVE),
-                lang.get(Lang.Key.HELP_EDITOR_RELOAD),
-                "",
-                lang.get(Lang.Key.HELP_BUILD),
-                lang.get(Lang.Key.HELP_UNLOAD),
-                lang.get(Lang.Key.HELP_RELOAD),
-                lang.get(Lang.Key.HELP_DEBUG),
-                lang.get(Lang.Key.HELP_LANGUAGE),
-                ""
+                    "",
+                    lang.get(Lang.Key.HELP_EDITOR),
+                    lang.get(Lang.Key.HELP_EDITOR_REMOVE),
+                    lang.get(Lang.Key.HELP_EDITOR_RELOAD),
+                    "",
+                    lang.get(Lang.Key.HELP_BUILD),
+                    lang.get(Lang.Key.HELP_UNLOAD),
+                    lang.get(Lang.Key.HELP_RELOAD),
+                    lang.get(Lang.Key.HELP_DEBUG),
+                    lang.get(Lang.Key.HELP_LANGUAGE),
+                    ""
             );
             return true;
         }
@@ -221,8 +221,8 @@ public class LiveJavaPlugin extends JavaPlugin implements TabCompleter {
                     String key = args[2];
                     if (webServer.removeEditorKey(key)) {
                         sendBox(sender, "§a§lOK",
-                            lang.get(Lang.Key.EDITOR_SESSION_CLOSED),
-                            "§8Key: §7" + key
+                                lang.get(Lang.Key.EDITOR_SESSION_CLOSED),
+                                "§8Key: §7" + key
                         );
                     } else {
                         sendBox(sender, "§c§lERROR", lang.get(Lang.Key.EDITOR_KEY_NOT_FOUND));
@@ -351,8 +351,8 @@ public class LiveJavaPlugin extends JavaPlugin implements TabCompleter {
                 scriptManager.stop(args[1]);
                 projectStatuses.put(args[1], "idle");
                 sendBox(sender, "§c§lSTOP",
-                    "§8Project: §7" + args[1],
-                    lang.get(Lang.Key.UNLOAD_SINGLE)
+                        "§8Project: §7" + args[1],
+                        lang.get(Lang.Key.UNLOAD_SINGLE)
                 );
             }
             return true;
@@ -377,8 +377,8 @@ public class LiveJavaPlugin extends JavaPlugin implements TabCompleter {
         }
 
         sendBox(sender, "§c§lERROR",
-            lang.get(Lang.Key.ERROR_UNKNOWN),
-            lang.get(Lang.Key.ERROR_HINT)
+                lang.get(Lang.Key.ERROR_UNKNOWN),
+                lang.get(Lang.Key.ERROR_HINT)
         );
         return true;
     }
@@ -442,7 +442,30 @@ public class LiveJavaPlugin extends JavaPlugin implements TabCompleter {
     }
 
     public void buildProject(String projectName, CommandSender sender) {
-        File projectDir = new File(getDataFolder(), "scripts/" + projectName);
+        // Null/bos kontrolu File nesnesi olusturulmadan ONCE yapilmali,
+        // aksi halde new File(scriptsDir, null) NPE firlatir.
+        if (projectName == null || projectName.isEmpty()) {
+            if (sender != null) sendBox(sender, "§c§lERROR", lang.get(Lang.Key.BUILD_NOT_FOUND) + projectName);
+            return;
+        }
+
+        File scriptsDir = new File(getDataFolder(), "scripts");
+        File projectDir = new File(scriptsDir, projectName);
+
+        // Path traversal korumasi: proje dizini scripts klasorunun disina cikamaz
+        try {
+            java.nio.file.Path scriptsPath = scriptsDir.getCanonicalFile().toPath();
+            java.nio.file.Path projectPath = projectDir.getCanonicalFile().toPath();
+            if (!projectPath.startsWith(scriptsPath)
+                    || projectPath.equals(scriptsPath)) {
+                if (sender != null) sendBox(sender, "§c§lERROR", lang.get(Lang.Key.BUILD_NOT_FOUND) + projectName);
+                return;
+            }
+        } catch (IOException e) {
+            if (sender != null) sendBox(sender, "§c§lERROR", lang.get(Lang.Key.BUILD_NOT_FOUND) + projectName);
+            return;
+        }
+
         if (!projectDir.exists()) {
             if (sender != null) sendBox(sender, "§c§lERROR", lang.get(Lang.Key.BUILD_NOT_FOUND) + projectName);
             return;
@@ -458,8 +481,8 @@ public class LiveJavaPlugin extends JavaPlugin implements TabCompleter {
         projectLogs.put(projectName, "[BUILD] Building: " + projectName + "\n");
 
         if (sender != null) sendBox(sender, lang.get(Lang.Key.BUILD_BUILDING),
-            "§8Project: §7" + projectName,
-            lang.get(Lang.Key.BUILD_BUILDING_DESC)
+                "§8Project: §7" + projectName,
+                lang.get(Lang.Key.BUILD_BUILDING_DESC)
         );
 
         File pluginsDir = getDataFolder().getParentFile();
@@ -473,25 +496,25 @@ public class LiveJavaPlugin extends JavaPlugin implements TabCompleter {
                     boolean loaded = scriptManager.loadAndStartProject(projectName, result.outputDir);
                     if (loaded) {
                         if (sender != null) sendBox(sender, lang.get(Lang.Key.BUILD_SUCCESS),
-                            "§8Project: §7" + projectName,
-                            lang.get(Lang.Key.BUILD_SUCCESS_DESC)
+                                "§8Project: §7" + projectName,
+                                lang.get(Lang.Key.BUILD_SUCCESS_DESC)
                         );
                         projectStatuses.put(projectName, "running");
                         projectLogs.put(projectName, projectLogs.getOrDefault(projectName, "") + "[SUCCESS] Active.\n");
                     } else {
                         if (sender != null) sendBox(sender, lang.get(Lang.Key.BUILD_LOAD_ERROR),
-                            "§8Project: §7" + projectName,
-                            lang.get(Lang.Key.BUILD_LOAD_ERROR_DESC1),
-                            lang.get(Lang.Key.BUILD_LOAD_ERROR_DESC2)
+                                "§8Project: §7" + projectName,
+                                lang.get(Lang.Key.BUILD_LOAD_ERROR_DESC1),
+                                lang.get(Lang.Key.BUILD_LOAD_ERROR_DESC2)
                         );
                         projectStatuses.put(projectName, "error");
                         projectLogs.put(projectName, projectLogs.getOrDefault(projectName, "") + "[ERROR] ClassLoader failed.\n");
                     }
                 } else {
                     if (sender != null) sendBox(sender, lang.get(Lang.Key.BUILD_COMPILE_ERROR),
-                        "§8Project: §7" + projectName,
-                        lang.get(Lang.Key.BUILD_COMPILE_ERROR_DESC1),
-                        lang.get(Lang.Key.BUILD_COMPILE_ERROR_DESC2)
+                            "§8Project: §7" + projectName,
+                            lang.get(Lang.Key.BUILD_COMPILE_ERROR_DESC1),
+                            lang.get(Lang.Key.BUILD_COMPILE_ERROR_DESC2)
                     );
                     projectStatuses.put(projectName, "error");
                     projectLogs.put(projectName, projectLogs.getOrDefault(projectName, "")
@@ -613,63 +636,63 @@ public class LiveJavaPlugin extends JavaPlugin implements TabCompleter {
 
         File demoFile = new File(packageFolder, "DemoScript.java");
         String demoContent =
-            "package miercoles;\n\n" +
-            "import livejava.api.LiveScript;\n" +
-            "import org.bukkit.Bukkit;\n" +
-            "import org.bukkit.entity.Player;\n" +
-            "import org.bukkit.event.EventHandler;\n" +
-            "import org.bukkit.event.Listener;\n" +
-            "import org.bukkit.event.player.PlayerJoinEvent;\n" +
-            "import org.bukkit.event.HandlerList;\n" +
-            "import org.bukkit.plugin.java.JavaPlugin;\n" +
-            "import org.bukkit.scheduler.BukkitTask;\n" +
-            "import java.util.ArrayList;\n" +
-            "import java.util.List;\n\n" +
-            "public class DemoScript extends LiveScript implements Listener {\n\n" +
-            "    private BukkitTask task;\n" +
-            "    private JavaPlugin plugin;\n\n" +
-            "    @Override\n" +
-            "    public void onStart() {\n" +
-            "        plugin = (JavaPlugin) Bukkit.getPluginManager().getPlugin(\"LiveJava\");\n\n" +
-            "        Bukkit.broadcastMessage(\"§a[DemoScript] Successfully started via LiveJava IDE!\");\n\n" +
-            "        Bukkit.getPluginManager().registerEvents(this, plugin);\n\n" +
-            "        command(\"livejavatest\", \"LiveJava Test Komutu\")\n" +
-            "            .aliases(\"ljt\")\n" +
-            "            .execute((sender, args) -> {\n" +
-            "                if (args.length == 0) {\n" +
-            "                    sender.sendMessage(\"§cUsage: /livejavatest [heal/smite]\");\n" +
-            "                } else if (sender instanceof Player p) {\n" +
-            "                    if (args[0].equalsIgnoreCase(\"heal\")) { p.setHealth(20); p.sendMessage(\"§aHealth restored!\"); }\n" +
-            "                    if (args[0].equalsIgnoreCase(\"smite\")) { p.getWorld().strikeLightning(p.getLocation()); }\n" +
-            "                }\n" +
-            "            })\n" +
-            "            .tabComplete((sender, args) -> {\n" +
-            "                List<String> list = new ArrayList<>();\n" +
-            "                if (args.length == 1) {\n" +
-            "                    if (\"heal\".startsWith(args[0].toLowerCase())) list.add(\"heal\");\n" +
-            "                    if (\"smite\".startsWith(args[0].toLowerCase())) list.add(\"smite\");\n" +
-            "                }\n" +
-            "                return list;\n" +
-            "            })\n" +
-            "            .register();\n\n" +
-            "        task = Bukkit.getScheduler().runTaskTimer(plugin, () -> {\n" +
-            "            for (Player p : Bukkit.getOnlinePlayers()) {\n" +
-            "                double health = p.getHealth();\n" +
-            "                if (health > 0 && health < 20.0) p.setHealth(Math.min(20.0, health + 1.0));\n" +
-            "            }\n" +
-            "        }, 0L, 200L);\n" +
-            "    }\n\n" +
-            "    @Override\n" +
-            "    public void onStop() {\n" +
-            "        HandlerList.unregisterAll(this);\n" +
-            "        if (task != null) task.cancel();\n" +
-            "        Bukkit.broadcastMessage(\"§c[DemoScript] Safely removed from memory.\");\n" +
-            "    }\n\n" +
-            "    @EventHandler\n" +
-            "    public void onJoin(PlayerJoinEvent e) {\n" +
-            "        e.setJoinMessage(\"§e[LiveJava] §a\" + e.getPlayer().getName() + \" joined and will feel LiveJava's power!\");\n" +
-            "    }\n" +
-            "}\n";
+                "package miercoles;\n\n" +
+                        "import livejava.api.LiveScript;\n" +
+                        "import org.bukkit.Bukkit;\n" +
+                        "import org.bukkit.entity.Player;\n" +
+                        "import org.bukkit.event.EventHandler;\n" +
+                        "import org.bukkit.event.Listener;\n" +
+                        "import org.bukkit.event.player.PlayerJoinEvent;\n" +
+                        "import org.bukkit.event.HandlerList;\n" +
+                        "import org.bukkit.plugin.java.JavaPlugin;\n" +
+                        "import org.bukkit.scheduler.BukkitTask;\n" +
+                        "import java.util.ArrayList;\n" +
+                        "import java.util.List;\n\n" +
+                        "public class DemoScript extends LiveScript implements Listener {\n\n" +
+                        "    private BukkitTask task;\n" +
+                        "    private JavaPlugin plugin;\n\n" +
+                        "    @Override\n" +
+                        "    public void onStart() {\n" +
+                        "        plugin = (JavaPlugin) Bukkit.getPluginManager().getPlugin(\"LiveJava\");\n\n" +
+                        "        Bukkit.broadcastMessage(\"§a[DemoScript] Successfully started via LiveJava IDE!\");\n\n" +
+                        "        Bukkit.getPluginManager().registerEvents(this, plugin);\n\n" +
+                        "        command(\"livejavatest\", \"LiveJava Test Komutu\")\n" +
+                        "            .aliases(\"ljt\")\n" +
+                        "            .execute((sender, args) -> {\n" +
+                        "                if (args.length == 0) {\n" +
+                        "                    sender.sendMessage(\"§cUsage: /livejavatest [heal/smite]\");\n" +
+                        "                } else if (sender instanceof Player p) {\n" +
+                        "                    if (args[0].equalsIgnoreCase(\"heal\")) { p.setHealth(20); p.sendMessage(\"§aHealth restored!\"); }\n" +
+                        "                    if (args[0].equalsIgnoreCase(\"smite\")) { p.getWorld().strikeLightning(p.getLocation()); }\n" +
+                        "                }\n" +
+                        "            })\n" +
+                        "            .tabComplete((sender, args) -> {\n" +
+                        "                List<String> list = new ArrayList<>();\n" +
+                        "                if (args.length == 1) {\n" +
+                        "                    if (\"heal\".startsWith(args[0].toLowerCase())) list.add(\"heal\");\n" +
+                        "                    if (\"smite\".startsWith(args[0].toLowerCase())) list.add(\"smite\");\n" +
+                        "                }\n" +
+                        "                return list;\n" +
+                        "            })\n" +
+                        "            .register();\n\n" +
+                        "        task = Bukkit.getScheduler().runTaskTimer(plugin, () -> {\n" +
+                        "            for (Player p : Bukkit.getOnlinePlayers()) {\n" +
+                        "                double health = p.getHealth();\n" +
+                        "                if (health > 0 && health < 20.0) p.setHealth(Math.min(20.0, health + 1.0));\n" +
+                        "            }\n" +
+                        "        }, 0L, 200L);\n" +
+                        "    }\n\n" +
+                        "    @Override\n" +
+                        "    public void onStop() {\n" +
+                        "        HandlerList.unregisterAll(this);\n" +
+                        "        if (task != null) task.cancel();\n" +
+                        "        Bukkit.broadcastMessage(\"§c[DemoScript] Safely removed from memory.\");\n" +
+                        "    }\n\n" +
+                        "    @EventHandler\n" +
+                        "    public void onJoin(PlayerJoinEvent e) {\n" +
+                        "        e.setJoinMessage(\"§e[LiveJava] §a\" + e.getPlayer().getName() + \" joined and will feel LiveJava's power!\");\n" +
+                        "    }\n" +
+                        "}\n";
 
         try {
             java.nio.file.Files.write(demoFile.toPath(),

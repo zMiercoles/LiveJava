@@ -14,3 +14,24 @@ web-ide-port: 8080
 # The IP of the player who types '/livejava editor' in-game is automatically allowed.
 # You can add extra static IPs here (e.g., your home static IP) to bypass the game command.
 allowed-ips: []
+
+# session-timeout-minutes: Web IDE sessions (editor tokens) expire after this many
+# minutes of inactivity. Set to 0 to disable session timeout (not recommended).
+session-timeout-minutes: 60
+
+# behind-reverse-proxy: Set to true ONLY if the Web IDE runs behind a reverse proxy
+# (e.g., Nginx or Caddy providing HTTPS). When enabled, the real client IP is read
+# from the X-Forwarded-For header so the IP lock keeps working correctly.
+#
+# SECURITY NOTE: Editor tokens are sent in plain text over HTTP. For internet-facing
+# servers it is strongly recommended to put the Web IDE behind an HTTPS reverse proxy.
+# Example (Nginx):
+#   server {
+#     listen 443 ssl;
+#     server_name ide.example.com;
+#     location / {
+#       proxy_pass http://127.0.0.1:8080;
+#       proxy_set_header X-Forwarded-For $remote_addr;
+#     }
+#   }
+behind-reverse-proxy: false

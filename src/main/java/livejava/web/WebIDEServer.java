@@ -28,7 +28,19 @@ public class WebIDEServer {
     private final int port;
     private final Logger logger;
 
-    private final Map<String, String> activeKeys = new ConcurrentHashMap<>();
+    /** Aktif oturumlar: token -> oturum bilgisi (IP + son aktivite zamani) */
+    private final Map<String, Session> activeKeys = new ConcurrentHashMap<>();
+
+    /** Bir editor oturumunu temsil eder (IP kilidi + zaman asimi takibi). */
+    private static final class Session {
+        final String ip;
+        volatile long lastActivity;
+
+        Session(String ip) {
+            this.ip = ip;
+            this.lastActivity = System.currentTimeMillis();
+        }
+    }
 
     public WebIDEServer(LiveJavaPlugin plugin, int port) {
         this.plugin = plugin;
@@ -38,7 +50,7 @@ public class WebIDEServer {
 
     public String generateEditorKey(String playerIp) {
         String key = UUID.randomUUID().toString().replace("-", "").substring(0, 16);
-        activeKeys.put(key, playerIp);
+        activeKeys.put(key, new Session(playerIp));
         logger.info("[LiveJava] Generated new editor token. Connected IP: " + playerIp);
         return key;
     }
@@ -60,33 +72,48 @@ public class WebIDEServer {
             token = authHeader.substring(7);
         }
 
-        // 2. Fallback to URL query for the very first HTML loading
-        if (token == null) {
+        // 2. Fallback to URL query, SADECE ilk HTML sayfa yuklemesi icin.
+        //    /api/* uclari Authorization basligi kullanmak zorundadir; boylece
+        //    token URL'lerde, erisim loglarinda ve tarayici gecmisinde kalmaz.
+        if (token == null && !exchange.getRequestURI().getPath().startsWith("/api/")) {
             String query = exchange.getRequestURI().getQuery();
             if (query != null) {
                 for (String p : query.split("&")) {
-                    if (p.startsWith("key=")) {
-                        token = p.split("=")[1];
+                    if (p.startsWith("key=") && p.length() > 4) {
+                        token = p.substring(4);
                         break;
                     }
                 }
             }
         }
 
-        if (token == null || !activeKeys.containsKey(token)) return false;
+        if (token == null) return false;
 
-        // ip alion
-        String requestIp = exchange.getRemoteAddress().getAddress().getHostAddress();
+        Session session = activeKeys.get(token);
+        if (session == null) return false;
 
-        // ip kontrolu panpa
-        String boundIp = activeKeys.get(token);
-        // fix1
-        // ssrf fix
-        if (boundIp != null && boundIp.equals(requestIp)) return true;
+        // Oturum zaman asimi kontrolu (0 = devre disi)
+        long timeoutMinutes = plugin.getConfig().getLong("session-timeout-minutes", 60);
+        if (timeoutMinutes > 0 && System.currentTimeMillis() - session.lastActivity > timeoutMinutes * 60_000L) {
+            activeKeys.remove(token);
+            logger.info("[LiveJava] Editor session expired due to inactivity.");
+            return false;
+        }
+
+        String requestIp = getClientIp(exchange);
+
+        // IP kilidi: token sadece olusturuldugu IP'den kullanilabilir
+        if (session.ip != null && session.ip.equals(requestIp)) {
+            session.lastActivity = System.currentTimeMillis();
+            return true;
+        }
 
         // Config'deki whitelist kontrolü
         List<String> allowedIps = plugin.getConfig().getStringList("allowed-ips");
-        if (allowedIps.contains(requestIp)) return true;
+        if (allowedIps.contains(requestIp)) {
+            session.lastActivity = System.currentTimeMillis();
+            return true;
+        }
 
         logger.warning("[LiveJava] Unauthorized IDE access blocked! IP: " + requestIp);
         return false;
@@ -128,7 +155,7 @@ public class WebIDEServer {
             String html = new String(Files.readAllBytes(editorFile.toPath()), StandardCharsets.UTF_8);
             exchange.getResponseHeaders().set("Content-Type", "text/html; charset=UTF-8");
 
-            String requestIp = exchange.getRemoteAddress().getAddress().getHostAddress();
+            String requestIp = getClientIp(exchange);
             plugin.broadcastIdeLog("Web IDE Opened", requestIp);
 
             sendResponse(exchange, 200, html);
@@ -157,14 +184,14 @@ public class WebIDEServer {
                     first = false;
                     String relPath = f.getAbsolutePath().substring(basePath.length() + 1).replace("\\", "/");
                     sb.append("{");
-                    sb.append("\"name\":\"").append(f.getName()).append("\",");
-                    sb.append("\"path\":\"").append(relPath.replace("\"", "\\\"")).append("\",");
+                    sb.append("\"name\":\"").append(escapeJson(f.getName())).append("\",");
+                    sb.append("\"path\":\"").append(escapeJson(relPath)).append("\",");
                     sb.append("\"isDir\":").append(f.isDirectory());
 
                     // Sadece root dizindeyse (Yani projenin kendisiyse) status bilgisini ver
                     if (f.getParentFile().getName().equals("scripts")) {
                         String status = plugin.getProjectStatuses().getOrDefault(f.getName(), "idle");
-                        sb.append(",\"status\":\"").append(status).append("\"");
+                        sb.append(",\"status\":\"").append(escapeJson(status)).append("\"");
                     }
 
                     if (f.isDirectory()) { sb.append(",\"children\":").append(buildFileTreeJson(f, basePath)); }
@@ -210,7 +237,7 @@ public class WebIDEServer {
                 String newCode = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
                 Files.write(targetFile.toPath(), newCode.getBytes(StandardCharsets.UTF_8));
 
-                String requestIp = exchange.getRemoteAddress().getAddress().getHostAddress();
+                String requestIp = getClientIp(exchange);
                 plugin.broadcastIdeLog("File Saved: " + targetFile.getName(), requestIp);
 
                 sendResponse(exchange, 200, "Kayıt Başarılı.");
@@ -290,6 +317,12 @@ public class WebIDEServer {
                 }
                 final String targetProject = projectName;
 
+                // Path traversal korumasi: proje adi sadece guvenli karakterler icerebilir
+                if (!targetProject.equals("all") && !isSafeProjectName(targetProject)) {
+                    sendResponse(exchange, 400, "{\"status\": \"error\", \"message\": \"Gecersiz proje adi.\"}");
+                    return;
+                }
+
                 Bukkit.getScheduler().runTask(plugin, () -> {
                     if (targetProject.equals("all")) {
                         File scriptsDir = new File(plugin.getDataFolder(), "scripts");
@@ -321,6 +354,53 @@ public class WebIDEServer {
             exchange.getResponseHeaders().set("Content-Type", "text/plain; charset=UTF-8");
             sendResponse(exchange, 200, logs);
         }
+    }
+
+    /**
+     * Proje adinin path traversal icin kullanilamayacagini garanti eder.
+     * Sadece harf, rakam, alt cizgi ve tire kabul edilir.
+     */
+    static boolean isSafeProjectName(String name) {
+        return name != null && !name.isEmpty() && name.matches("[A-Za-z0-9_\\-]+");
+    }
+
+    /**
+     * JSON injection / XSS onlemek icin string degerleri JSON'a gomulmeden once kacislar.
+     */
+    private static String escapeJson(String s) {
+        if (s == null) return "";
+        StringBuilder sb = new StringBuilder(s.length());
+        for (char c : s.toCharArray()) {
+            switch (c) {
+                case '\\' -> sb.append("\\\\");
+                case '"'  -> sb.append("\\\"");
+                case '\b' -> sb.append("\\b");
+                case '\f' -> sb.append("\\f");
+                case '\n' -> sb.append("\\n");
+                case '\r' -> sb.append("\\r");
+                case '\t' -> sb.append("\\t");
+                default -> {
+                    if (c < 0x20) sb.append(String.format("\\u%04x", (int) c));
+                    else sb.append(c);
+                }
+            }
+        }
+        return sb.toString();
+    }
+
+    /**
+     * Istemci IP'sini dondurur. HTTPS reverse proxy (Nginx/Caddy vb.) arkasinda calisirken
+     * config'de 'behind-reverse-proxy: true' ayarlanirsa X-Forwarded-For basligindaki
+     * gercek istemci IP'si kullanilir; aksi halde dogrudan baglanti IP'si kullanilir.
+     */
+    private String getClientIp(HttpExchange exchange) {
+        if (plugin.getConfig().getBoolean("behind-reverse-proxy", false)) {
+            String xff = exchange.getRequestHeaders().getFirst("X-Forwarded-For");
+            if (xff != null && !xff.isEmpty()) {
+                return xff.split(",")[0].trim();
+            }
+        }
+        return exchange.getRemoteAddress().getAddress().getHostAddress();
     }
 
     private void sendResponse(HttpExchange exchange, int statusCode, String response) throws IOException {

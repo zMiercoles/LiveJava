@@ -673,493 +673,503 @@
 </head>
 <body>
 
-    <!-- ═══════ HEADER ═══════ -->
-    <div class="header">
-        <div class="logo">
-            <div class="logo-icon">LJ</div>
-            <span class="logo-text">LiveJava</span>
-            <span class="logo-badge">IDE</span>
+<!-- ═══════ HEADER ═══════ -->
+<div class="header">
+    <div class="logo">
+        <div class="logo-icon">LJ</div>
+        <span class="logo-text">LiveJava</span>
+        <span class="logo-badge">IDE</span>
+    </div>
+    <div class="header-right">
+        <div class="shortcut-badge">
+            <span class="kbd">Ctrl</span><span class="kbd">S</span>
+            <span style="color:var(--text-muted)">Save</span>
         </div>
-        <div class="header-right">
-            <div class="shortcut-badge">
-                <span class="kbd">Ctrl</span><span class="kbd">S</span>
-                <span style="color:var(--text-muted)">Save</span>
+        <span style="color:var(--border)">|</span>
+        <span style="color:var(--text-muted)">by Miercoles</span>
+    </div>
+</div>
+
+<!-- ═══════ MAIN ═══════ -->
+<div class="main-area">
+
+    <!-- Sidebar -->
+    <div class="sidebar" oncontextmenu="showMenu(event, '', 'root')">
+        <div class="sidebar-header">
+            <span class="sidebar-title">Explorer</span>
+            <div class="sidebar-actions">
+                <button class="icon-btn spin" id="refreshBtn" title="Refresh">&#x21BB;</button>
             </div>
-            <span style="color:var(--border)">|</span>
-            <span style="color:var(--text-muted)">by Miercoles</span>
+        </div>
+        <div class="sidebar-tree">
+            <ul class="file-tree" id="fileTree"></ul>
         </div>
     </div>
 
-    <!-- ═══════ MAIN ═══════ -->
-    <div class="main-area">
-
-        <!-- Sidebar -->
-        <div class="sidebar" oncontextmenu="showMenu(event, '', 'root')">
-            <div class="sidebar-header">
-                <span class="sidebar-title">Explorer</span>
-                <div class="sidebar-actions">
-                    <button class="icon-btn spin" id="refreshBtn" title="Refresh">&#x21BB;</button>
-                </div>
-            </div>
-            <div class="sidebar-tree">
-                <ul class="file-tree" id="fileTree"></ul>
+    <!-- Editor -->
+    <div class="editor-container-wrapper">
+        <div class="tabs-container" id="tabsArea"></div>
+        <div id="editor-container"></div>
+        <div class="empty-state" id="emptyState">
+            <div class="empty-logo">&lt;/&gt;</div>
+            <div class="empty-title">There is no tabs open</div>
+            <div class="empty-hint">
+                Select a file from left panel or<br>
+                create a new file with right click<br><br>
+                <span class="kbd">Ctrl</span> + <span class="kbd">S</span> Save &nbsp;&middot;&nbsp;
+                Right click for options.
             </div>
         </div>
 
-        <!-- Editor -->
-        <div class="editor-container-wrapper">
-            <div class="tabs-container" id="tabsArea"></div>
-            <div id="editor-container"></div>
-            <div class="empty-state" id="emptyState">
-                <div class="empty-logo">&lt;/&gt;</div>
-                <div class="empty-title">There is no tabs open</div>
-                <div class="empty-hint">
-                    Select a file from left panel or<br>
-                    create a new file with right click<br><br>
-                    <span class="kbd">Ctrl</span> + <span class="kbd">S</span> Save &nbsp;&middot;&nbsp;
-                    Right click for options.
+        <!-- Log Viewer -->
+        <div class="log-viewer" id="logViewer">
+            <div class="log-header" id="logHeader">
+                <div class="log-title-area">
+                    <div class="log-title-dot"></div>
+                    <span id="logTitle">Console</span>
                 </div>
+                <span class="log-close" onclick="document.getElementById('logViewer').style.display='none'">&#x2715;</span>
             </div>
-
-            <!-- Log Viewer -->
-            <div class="log-viewer" id="logViewer">
-                <div class="log-header" id="logHeader">
-                    <div class="log-title-area">
-                        <div class="log-title-dot"></div>
-                        <span id="logTitle">Console</span>
-                    </div>
-                    <span class="log-close" onclick="document.getElementById('logViewer').style.display='none'">&#x2715;</span>
-                </div>
-                <div class="log-content" id="logContent">Waiting for logs..</div>
-            </div>
+            <div class="log-content" id="logContent">Waiting for logs..</div>
         </div>
     </div>
+</div>
 
-    <!-- ═══════ STATUS BAR ═══════ -->
-    <div class="status-bar">
-        <div class="status-left">
-            <div class="status-dot-bar"></div>
-            <span id="status-text">Haz&#305;r</span>
-        </div>
-        <button class="console-btn" onclick="toggleLogViewer()">Console</button>
+<!-- ═══════ STATUS BAR ═══════ -->
+<div class="status-bar">
+    <div class="status-left">
+        <div class="status-dot-bar"></div>
+        <span id="status-text">Haz&#305;r</span>
     </div>
+    <button class="console-btn" onclick="toggleLogViewer()">Console</button>
+</div>
 
-    <!-- ═══════ JAVASCRIPT ═══════ -->
-    <script>
-        const urlParams = new URLSearchParams(window.location.search);
-        const authKey = urlParams.get('key');
-        if (!authKey) {
-            document.body.innerHTML = `
-                <div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#0d1117;">
-                    <div style="font-size:48px;opacity:0.3;">&#x26D4;</div>
-                    <div style="color:#f85149;font-size:18px;font-weight:600;">Yetkisiz Eri&#351;im</div>
-                    <div style="color:#8b949e;font-size:13px;">Please type <code style="background:#161b22;padding:2px 8px;border-radius:4px;color:#f0c674;">/livejava editor</code> to get link.</div>
-                </div>`;
-        }
+<!-- ═══════ JAVASCRIPT ═══════ -->
+<script>
+    const urlParams = new URLSearchParams(window.location.search);
+    let authKey = urlParams.get('key');
+    if (authKey) {
+        // Token'i sessionStorage'a tasi ve URL'den temizle:
+        // tarayici gecmisi ve loglarda gorunmesin.
+        sessionStorage.setItem('livejava_token', authKey);
+        urlParams.delete('key');
+        const cleanQuery = urlParams.toString();
+        history.replaceState(null, '', window.location.pathname + (cleanQuery ? '?' + cleanQuery : ''));
+    } else {
+        authKey = sessionStorage.getItem('livejava_token');
+    }
+    if (!authKey) {
+        document.body.innerHTML = `
+            <div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#0d1117;">
+                <div style="font-size:48px;opacity:0.3;">&#x26D4;</div>
+                <div style="color:#f85149;font-size:18px;font-weight:600;">Yetkisiz Eri&#351;im</div>
+                <div style="color:#8b949e;font-size:13px;">Please type <code style="background:#161b22;padding:2px 8px;border-radius:4px;color:#f0c674;">/livejava editor</code> to get link.</div>
+            </div>`;
+    }
 
-        let editor;
-        // Safe Fetch wrapper sending Token via Header instead of URL
-        function apiFetch(url, options = {}) {
-            if (!options.headers) options.headers = {};
-            options.headers['Authorization'] = 'Bearer ' + authKey;
-            return fetch(url, options);
-        }
+    let editor;
+    // Safe Fetch wrapper sending Token via Header instead of URL
+    function apiFetch(url, options = {}) {
+        if (!options.headers) options.headers = {};
+        options.headers['Authorization'] = 'Bearer ' + authKey;
+        return fetch(url, options);
+    }
 
-        let openTabs = [];
-        let currentActivePath = null;
-        let treeDataCache = [];
+    let openTabs = [];
+    let currentActivePath = null;
+    let treeDataCache = [];
 
-        // Monaco Editor
-        require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.38.0/min/vs' }});
-        require(['vs/editor/editor.main'], function () {
-            editor = monaco.editor.create(document.getElementById('editor-container'), {
-                theme: 'vs-dark',
-                automaticLayout: true,
-                fontSize: 14,
-                fontFamily: "'JetBrains Mono', 'Cascadia Code', Consolas, monospace",
-                fontLigatures: true,
-                minimap: { enabled: true, scale: 1, showSlider: 'mouseover' },
-                smoothScrolling: true,
-                cursorBlinking: 'smooth',
-                cursorSmoothCaretAnimation: 'on',
-                renderLineHighlight: 'all',
-                bracketPairColorization: { enabled: true },
-                padding: { top: 8, bottom: 8 },
-                suggest: {
-                    preview: true,
-                    showInlineDetails: true
-                },
-                inlineSuggest: {
-                    enabled: true,
-                    showToolbar: "always"
-                },
-                wordBasedSuggestions: "allDocuments"
-            });
-
-            editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, saveCurrentFile);
-
-            editor.onDidChangeModelContent(() => {
-                if (currentActivePath) {
-                    let tab = openTabs.find(t => t.path === currentActivePath);
-                    if (tab && !tab.unsaved) {
-                        tab.unsaved = true;
-                        renderTabs();
-                        updateFileTreeUnsavedUI();
-                    }
-                }
-            });
-
-            if (authKey) loadTree();
+    // Monaco Editor
+    require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.38.0/min/vs' }});
+    require(['vs/editor/editor.main'], function () {
+        editor = monaco.editor.create(document.getElementById('editor-container'), {
+            theme: 'vs-dark',
+            automaticLayout: true,
+            fontSize: 14,
+            fontFamily: "'JetBrains Mono', 'Cascadia Code', Consolas, monospace",
+            fontLigatures: true,
+            minimap: { enabled: true, scale: 1, showSlider: 'mouseover' },
+            smoothScrolling: true,
+            cursorBlinking: 'smooth',
+            cursorSmoothCaretAnimation: 'on',
+            renderLineHighlight: 'all',
+            bracketPairColorization: { enabled: true },
+            padding: { top: 8, bottom: 8 },
+            suggest: {
+                preview: true,
+                showInlineDetails: true
+            },
+            inlineSuggest: {
+                enabled: true,
+                showToolbar: "always"
+            },
+            wordBasedSuggestions: "allDocuments"
         });
 
-        // ══════════════════ TREE ══════════════════
-        document.getElementById('refreshBtn').addEventListener('click', loadTree);
+        editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, saveCurrentFile);
 
-        function loadTree() {
-            apiFetch(`/api/tree`)
-                .then(res => res.json())
-                .then(data => {
-                    treeDataCache = data;
-                    const treeRoot = document.getElementById('fileTree');
-                    treeRoot.innerHTML = '';
-                    renderTree(data, treeRoot, "scripts", 0);
-                    updateFileTreeUnsavedUI();
-                })
-                .catch(() => setStatus('Cant load file tree!'));
-        }
-
-        function renderTree(nodes, parentElement, basePathName, level) {
-            nodes.sort((a,b) => (a.isDir === b.isDir) ? 0 : a.isDir ? -1 : 1);
-            nodes.forEach(node => {
-                const li = document.createElement('li');
-                const isProject = level === 0;
-
-                let statusClass = "idle";
-                if (isProject && node.status) statusClass = node.status;
-
-                let html = '';
-
-                if (isProject) {
-                    html = `<div class="tree-item project-item status-${statusClass}" onclick="handleTreeClick(event, '${node.path}', ${node.isDir}, '${node.name}')" oncontextmenu="showMenu(event, '${node.path}', 'project', '${node.name}')">
-                        <div class="tree-content">
-                            <span class="arrow" id="arrow-${btoa(node.path)}">&#x25B6;</span>
-                            <span class="status-dot ${statusClass}"></span>
-                            <span id="txt-${btoa(node.path)}">${node.name}</span>
-                        </div>
-                        <button class="build-btn" onclick="event.stopPropagation(); buildProject('${node.name}')">Build</button>
-                    </div>`;
-                } else if (node.isDir) {
-                    html = `<div class="tree-item folder-item" onclick="handleTreeClick(event, '${node.path}', true, '${node.name}')" oncontextmenu="showMenu(event, '${node.path}', 'folder', '${node.name}')">
-                        <div class="tree-content">
-                            <span class="arrow" id="arrow-${btoa(node.path)}">&#x25B6;</span>
-                            <span class="folder-icon">&#x1F4C1;</span>
-                            <span id="txt-${btoa(node.path)}">${node.name}</span>
-                        </div>
-                    </div>`;
-                } else {
-                    const ext = node.name.split('.').pop();
-                    const icon = ext === 'java' ? '&#x2615;' : '&#x1F4C4;';
-                    html = `<div class="tree-item file-item" onclick="handleTreeClick(event, '${node.path}', false, '${node.name}')" oncontextmenu="showMenu(event, '${node.path}', 'file', '${node.name}')">
-                        <div class="tree-content">
-                            <span class="file-icon">${icon}</span>
-                            <span id="txt-${btoa(node.path)}">${node.name}</span>
-                        </div>
-                    </div>`;
-                }
-
-                li.innerHTML = html;
-
-                if (node.isDir) {
-                    const childUl = document.createElement('ul');
-                    childUl.id = `ul-${btoa(node.path)}`;
-                    if (isProject) childUl.classList.add('open');
-                    renderTree(node.children, childUl, node.name, level + 1);
-                    li.appendChild(childUl);
-                }
-                parentElement.appendChild(li);
-            });
-            updateTreeArrows();
-        }
-
-        function handleTreeClick(e, path, isDir, name) {
-            if (isDir) {
-                const ul = document.getElementById(`ul-${btoa(path)}`);
-                if (ul) {
-                    ul.classList.toggle('open');
-                    updateTreeArrows();
-                }
-            } else {
-                openFileAsTab(path, name);
-            }
-        }
-
-        function updateTreeArrows() {
-            document.querySelectorAll('.file-tree ul').forEach(ul => {
-                if (!ul.id) return;
-                const pathId = ul.id.replace('ul-', '');
-                const arrow = document.getElementById(`arrow-${pathId}`);
-                if (arrow) {
-                    if (ul.classList.contains('open')) arrow.classList.add('down');
-                    else arrow.classList.remove('down');
-                }
-            });
-        }
-
-        function updateFileTreeUnsavedUI() {
-            document.querySelectorAll('.file-item span').forEach(el => el.classList.remove('unsaved'));
-            openTabs.forEach(tab => {
-                if (tab.unsaved) {
-                    const txtObj = document.getElementById(`txt-${btoa(tab.path)}`);
-                    if (txtObj) txtObj.classList.add('unsaved');
-                }
-            });
-        }
-
-        // ══════════════════ TABS & EDITOR ══════════════════
-        function openFileAsTab(path, name) {
-            let existingTab = openTabs.find(t => t.path === path);
-            if (existingTab) { switchTab(path); return; }
-
-            apiFetch(`/api/file?path=${encodeURIComponent(path)}`)
-                .then(res => res.text())
-                .then(code => {
-                    let newModel = monaco.editor.createModel(code, 'java');
-                    openTabs.push({ path, name, model: newModel, unsaved: false });
-                    switchTab(path);
-                });
-        }
-
-        function switchTab(path) {
-            currentActivePath = path;
-            let tab = openTabs.find(t => t.path === path);
-            if (tab) {
-                document.getElementById('emptyState').style.display = 'none';
-                document.getElementById('editor-container').style.display = 'block';
-                editor.setModel(tab.model);
-            }
-            renderTabs();
-        }
-
-        function closeTab(e, path) {
-            e.stopPropagation();
-            let tabIndex = openTabs.findIndex(t => t.path === path);
-            if (tabIndex === -1) return;
-
-            if (openTabs[tabIndex].unsaved) {
-                if (!confirm(`'${openTabs[tabIndex].name}' didn't saved. Will you close it?`)) return;
-            }
-
-            openTabs[tabIndex].model.dispose();
-            openTabs.splice(tabIndex, 1);
-
-            if (openTabs.length === 0) {
-                currentActivePath = null;
-                document.getElementById('emptyState').style.display = 'flex';
-                document.getElementById('editor-container').style.display = 'none';
-            } else if (currentActivePath === path) {
-                switchTab(openTabs[openTabs.length - 1].path);
-            }
-            renderTabs();
-            updateFileTreeUnsavedUI();
-        }
-
-        function renderTabs() {
-            const area = document.getElementById('tabsArea');
-            area.innerHTML = '';
-            openTabs.forEach(tab => {
-                const isActive = tab.path === currentActivePath ? 'active' : '';
-                const isUnsaved = tab.unsaved ? 'unsaved' : '';
-                area.innerHTML += `
-                    <div class="tab ${isActive} ${isUnsaved}" onclick="switchTab('${tab.path}')" title="${tab.path}">
-                        <span class="tab-icon">&#x2615;</span>
-                        <span class="tab-name">${tab.name}</span>
-                        <span class="tab-close" onclick="closeTab(event, '${tab.path}')">&#x2715;</span>
-                    </div>`;
-            });
-        }
-
-        function saveCurrentFile() {
-            if (!currentActivePath) return;
-            let tab = openTabs.find(t => t.path === currentActivePath);
-            if (!tab) return;
-
-            setStatus('Kaydediliyor...');
-            apiFetch(`/api/file?path=${encodeURIComponent(tab.path)}`, {
-                method: 'POST', body: editor.getValue()
-            }).then(() => {
-                tab.unsaved = false;
-                renderTabs();
-                updateFileTreeUnsavedUI();
-                setStatus(`Kaydedildi: ${tab.name}`);
-            });
-        }
-
-        // ══════════════════ BUILD ══════════════════
-        function buildProject(projectName) {
-            openTabs.forEach(t => {
-                if (t.path.startsWith(projectName + '/') && t.unsaved) {
-                    apiFetch(`/api/file?path=${encodeURIComponent(t.path)}`, { method: 'POST', body: t.model.getValue() });
-                    t.unsaved = false;
-                }
-            });
-            renderTabs();
-            updateFileTreeUnsavedUI();
-
-            setStatus(`${projectName} Building...`);
-            apiFetch(`/api/build?project=${projectName}`, { method: 'POST' }).then(() => {
-                setTimeout(loadTree, 1000);
-                setTimeout(() => openLogViewerFor(projectName), 500);
-            });
-        }
-
-        // ══════════════════ CONTEXT MENU ══════════════════
-        let ctxMenu = document.createElement('div');
-        ctxMenu.className = 'context-menu';
-        document.body.appendChild(ctxMenu);
-        document.addEventListener('click', () => ctxMenu.style.display = 'none');
-
-        function showMenu(e, path, type, name) {
-            e.preventDefault();
-            e.stopPropagation();
-
-            // Keep menu within viewport
-            const x = Math.min(e.pageX, window.innerWidth - 220);
-            const y = Math.min(e.pageY, window.innerHeight - 200);
-            ctxMenu.style.left = x + 'px';
-            ctxMenu.style.top = y + 'px';
-            ctxMenu.style.display = 'block';
-
-            if (type === 'root') {
-                ctxMenu.innerHTML = `<div class="ctx-item" onclick="createProject()"><span class="ctx-icon">&#x1F4E6;</span>Create a new project</div>`;
-            } else if (type === 'project') {
-                ctxMenu.innerHTML = `<div class="ctx-item danger" onclick="apiFs('delete', '${path}')"><span class="ctx-icon">&#x1F5D1;</span>Remove project</div>`;
-            } else if (type === 'folder') {
-                const isUnderMiercoles = path.includes('/miercoles');
-                const isMiercoles = name === 'miercoles';
-                ctxMenu.innerHTML = `
-                    <div class="ctx-item ${!isUnderMiercoles ? 'disabled' : ''}" onclick="apiFs('mkfile', '${path}')"><span class="ctx-icon">&#x2795;</span>New Java Class</div>
-                    <div class="ctx-item ${!isUnderMiercoles ? 'disabled' : ''}" onclick="apiFs('mkdir', '${path}')"><span class="ctx-icon">&#x1F4C1;</span>New Package</div>
-                    <hr>
-                    <div class="ctx-item ${isMiercoles ? 'disabled' : ''}" onclick="renameItem('${path}')"><span class="ctx-icon">&#x270F;</span>Rename</div>
-                    <div class="ctx-item danger ${isMiercoles ? 'disabled' : ''}" onclick="apiFs('delete', '${path}')"><span class="ctx-icon">&#x1F5D1;</span>Delete</div>
-                `;
-            } else {
-                ctxMenu.innerHTML = `
-                    <div class="ctx-item" onclick="renameItem('${path}')"><span class="ctx-icon">&#x270F;</span>Rename</div>
-                    <div class="ctx-item danger" onclick="apiFs('delete', '${path}')"><span class="ctx-icon">&#x1F5D1;</span>Delete</div>
-                `;
-            }
-        }
-
-        function createProject() {
-            let pName = prompt('Project name (without space, ex: LoginSystem):');
-            if (pName && pName.trim() !== '') {
-                apiFs('mkdir', pName.trim() + '/miercoles');
-            }
-        }
-
-        function renameItem(oldPath) {
-            let newPath = prompt('Enter the new name:', oldPath.split('/').pop());
-            if (newPath) {
-                let p = oldPath.split('/');
-                p.pop();
-                p.push(newPath);
-                apiFs('rename', oldPath, p.join('/'));
-            }
-        }
-
-        function apiFs(action, path, newPath) {
-            let targetPath = path;
-            if (action === 'mkfile') {
-                let name = prompt('Enter the class name (Ex: MyScript.java):');
-                if (!name) return;
-                if (!name.endsWith('.java')) name += '.java';
-                targetPath = path + '/' + name;
-            } else if (action === 'mkdir') {
-                if (path.endsWith('/miercoles')) {
-                    targetPath = path;
-                } else {
-                    let name = prompt('Enter a Packet/Folder name (ex: utils):');
-                    if (!name) return;
-                    targetPath = path + '/' + name;
-                }
-            } else if (action === 'delete') {
-                if (!confirm(`Are you sure? we cant get back them for you:\n${path}`)) return;
-                let tabIndex = openTabs.findIndex(t => t.path === path || t.path.startsWith(path + '/'));
-                if (tabIndex !== -1) {
-                    openTabs.splice(tabIndex, 1);
-                    currentActivePath = null;
+        editor.onDidChangeModelContent(() => {
+            if (currentActivePath) {
+                let tab = openTabs.find(t => t.path === currentActivePath);
+                if (tab && !tab.unsaved) {
+                    tab.unsaved = true;
                     renderTabs();
+                    updateFileTreeUnsavedUI();
                 }
             }
+        });
 
-            apiFetch(`/api/fs`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action, path: targetPath, newPath })
-            }).then(() => {
-                if (action === 'mkfile') {
-                    let parts = targetPath.split('/');
-                    let className = parts[parts.length - 1].replace('.java', '');
-                    let pkgIndex = parts.indexOf('miercoles');
-                    let pkg = 'miercoles';
-                    if (pkgIndex !== -1 && parts.length - 1 > pkgIndex + 1) {
-                        pkg = parts.slice(pkgIndex, parts.length - 1).join('.');
-                    }
-                    let template = `package ${pkg};\n\nimport livejava.api.LiveScript;\nimport org.bukkit.Bukkit;\n\npublic class ${className} extends LiveScript {\n    @Override\n    public void onStart() {\n    }\n\n    @Override\n    public void onStop() {\n    }\n}\n`;
-                    apiFetch(`/api/file?path=${encodeURIComponent(targetPath)}`, {
-                        method: 'POST', body: template
-                    }).then(() => { loadTree(); openFileAsTab(targetPath, className + '.java'); });
-                } else {
-                    loadTree();
-                }
+        if (authKey) loadTree();
+    });
+
+    // ══════════════════ TREE ══════════════════
+    document.getElementById('refreshBtn').addEventListener('click', loadTree);
+
+    function loadTree() {
+        apiFetch(`/api/tree`)
+            .then(res => res.json())
+            .then(data => {
+                treeDataCache = data;
+                const treeRoot = document.getElementById('fileTree');
+                treeRoot.innerHTML = '';
+                renderTree(data, treeRoot, "scripts", 0);
+                updateFileTreeUnsavedUI();
+            })
+            .catch(() => setStatus('Cant load file tree!'));
+    }
+
+    function renderTree(nodes, parentElement, basePathName, level) {
+        nodes.sort((a,b) => (a.isDir === b.isDir) ? 0 : a.isDir ? -1 : 1);
+        nodes.forEach(node => {
+            const li = document.createElement('li');
+            const isProject = level === 0;
+
+            let statusClass = "idle";
+            if (isProject && node.status) statusClass = node.status;
+
+            let html = '';
+
+            if (isProject) {
+                html = `<div class="tree-item project-item status-${statusClass}" onclick="handleTreeClick(event, '${node.path}', ${node.isDir}, '${node.name}')" oncontextmenu="showMenu(event, '${node.path}', 'project', '${node.name}')">
+                    <div class="tree-content">
+                        <span class="arrow" id="arrow-${btoa(node.path)}">&#x25B6;</span>
+                        <span class="status-dot ${statusClass}"></span>
+                        <span id="txt-${btoa(node.path)}">${node.name}</span>
+                    </div>
+                    <button class="build-btn" onclick="event.stopPropagation(); buildProject('${node.name}')">Build</button>
+                </div>`;
+            } else if (node.isDir) {
+                html = `<div class="tree-item folder-item" onclick="handleTreeClick(event, '${node.path}', true, '${node.name}')" oncontextmenu="showMenu(event, '${node.path}', 'folder', '${node.name}')">
+                    <div class="tree-content">
+                        <span class="arrow" id="arrow-${btoa(node.path)}">&#x25B6;</span>
+                        <span class="folder-icon">&#x1F4C1;</span>
+                        <span id="txt-${btoa(node.path)}">${node.name}</span>
+                    </div>
+                </div>`;
+            } else {
+                const ext = node.name.split('.').pop();
+                const icon = ext === 'java' ? '&#x2615;' : '&#x1F4C4;';
+                html = `<div class="tree-item file-item" onclick="handleTreeClick(event, '${node.path}', false, '${node.name}')" oncontextmenu="showMenu(event, '${node.path}', 'file', '${node.name}')">
+                    <div class="tree-content">
+                        <span class="file-icon">${icon}</span>
+                        <span id="txt-${btoa(node.path)}">${node.name}</span>
+                    </div>
+                </div>`;
+            }
+
+            li.innerHTML = html;
+
+            if (node.isDir) {
+                const childUl = document.createElement('ul');
+                childUl.id = `ul-${btoa(node.path)}`;
+                if (isProject) childUl.classList.add('open');
+                renderTree(node.children, childUl, node.name, level + 1);
+                li.appendChild(childUl);
+            }
+            parentElement.appendChild(li);
+        });
+        updateTreeArrows();
+    }
+
+    function handleTreeClick(e, path, isDir, name) {
+        if (isDir) {
+            const ul = document.getElementById(`ul-${btoa(path)}`);
+            if (ul) {
+                ul.classList.toggle('open');
+                updateTreeArrows();
+            }
+        } else {
+            openFileAsTab(path, name);
+        }
+    }
+
+    function updateTreeArrows() {
+        document.querySelectorAll('.file-tree ul').forEach(ul => {
+            if (!ul.id) return;
+            const pathId = ul.id.replace('ul-', '');
+            const arrow = document.getElementById(`arrow-${pathId}`);
+            if (arrow) {
+                if (ul.classList.contains('open')) arrow.classList.add('down');
+                else arrow.classList.remove('down');
+            }
+        });
+    }
+
+    function updateFileTreeUnsavedUI() {
+        document.querySelectorAll('.file-item span').forEach(el => el.classList.remove('unsaved'));
+        openTabs.forEach(tab => {
+            if (tab.unsaved) {
+                const txtObj = document.getElementById(`txt-${btoa(tab.path)}`);
+                if (txtObj) txtObj.classList.add('unsaved');
+            }
+        });
+    }
+
+    // ══════════════════ TABS & EDITOR ══════════════════
+    function openFileAsTab(path, name) {
+        let existingTab = openTabs.find(t => t.path === path);
+        if (existingTab) { switchTab(path); return; }
+
+        apiFetch(`/api/file?path=${encodeURIComponent(path)}`)
+            .then(res => res.text())
+            .then(code => {
+                let newModel = monaco.editor.createModel(code, 'java');
+                openTabs.push({ path, name, model: newModel, unsaved: false });
+                switchTab(path);
             });
+    }
+
+    function switchTab(path) {
+        currentActivePath = path;
+        let tab = openTabs.find(t => t.path === path);
+        if (tab) {
+            document.getElementById('emptyState').style.display = 'none';
+            document.getElementById('editor-container').style.display = 'block';
+            editor.setModel(tab.model);
+        }
+        renderTabs();
+    }
+
+    function closeTab(e, path) {
+        e.stopPropagation();
+        let tabIndex = openTabs.findIndex(t => t.path === path);
+        if (tabIndex === -1) return;
+
+        if (openTabs[tabIndex].unsaved) {
+            if (!confirm(`'${openTabs[tabIndex].name}' didn't saved. Will you close it?`)) return;
         }
 
-        // ══════════════════ LOG VIEWER ══════════════════
-        const logViewer = document.getElementById('logViewer');
-        const logHeader = document.getElementById('logHeader');
+        openTabs[tabIndex].model.dispose();
+        openTabs.splice(tabIndex, 1);
 
-        function toggleLogViewer() {
-            logViewer.style.display = logViewer.style.display === 'flex' ? 'none' : 'flex';
+        if (openTabs.length === 0) {
+            currentActivePath = null;
+            document.getElementById('emptyState').style.display = 'flex';
+            document.getElementById('editor-container').style.display = 'none';
+        } else if (currentActivePath === path) {
+            switchTab(openTabs[openTabs.length - 1].path);
         }
+        renderTabs();
+        updateFileTreeUnsavedUI();
+    }
 
-        function openLogViewerFor(projName) {
-            logViewer.style.display = 'flex';
-            document.getElementById('logTitle').innerText = `Console: ${projName}`;
-            let fetches = 0;
-            let logInter = setInterval(() => {
-                fetches++;
-                apiFetch(`/api/logs?project=${projName}`)
-                    .then(r => r.text())
-                    .then(t => {
-                        document.getElementById('logContent').innerText = t;
-                        document.getElementById('logContent').scrollTop = 9999;
-                    });
-                if (fetches >= 5) clearInterval(logInter);
-            }, 1000);
-        }
+    function renderTabs() {
+        const area = document.getElementById('tabsArea');
+        area.innerHTML = '';
+        openTabs.forEach(tab => {
+            const isActive = tab.path === currentActivePath ? 'active' : '';
+            const isUnsaved = tab.unsaved ? 'unsaved' : '';
+            area.innerHTML += `
+                <div class="tab ${isActive} ${isUnsaved}" onclick="switchTab('${tab.path}')" title="${tab.path}">
+                    <span class="tab-icon">&#x2615;</span>
+                    <span class="tab-name">${tab.name}</span>
+                    <span class="tab-close" onclick="closeTab(event, '${tab.path}')">&#x2715;</span>
+                </div>`;
+        });
+    }
 
-        // Drag
-        logHeader.onmousedown = function(e) {
-            if (e.target.closest('.log-close')) return;
-            let shiftX = e.clientX - logViewer.getBoundingClientRect().left;
-            let shiftY = e.clientY - logViewer.getBoundingClientRect().top;
-            function moveAt(pageX, pageY) {
-                logViewer.style.left = pageX - shiftX + 'px';
-                logViewer.style.top = pageY - shiftY + 'px';
-                logViewer.style.bottom = 'auto';
-                logViewer.style.right = 'auto';
+    function saveCurrentFile() {
+        if (!currentActivePath) return;
+        let tab = openTabs.find(t => t.path === currentActivePath);
+        if (!tab) return;
+
+        setStatus('Kaydediliyor...');
+        apiFetch(`/api/file?path=${encodeURIComponent(tab.path)}`, {
+            method: 'POST', body: editor.getValue()
+        }).then(() => {
+            tab.unsaved = false;
+            renderTabs();
+            updateFileTreeUnsavedUI();
+            setStatus(`Kaydedildi: ${tab.name}`);
+        });
+    }
+
+    // ══════════════════ BUILD ══════════════════
+    function buildProject(projectName) {
+        openTabs.forEach(t => {
+            if (t.path.startsWith(projectName + '/') && t.unsaved) {
+                apiFetch(`/api/file?path=${encodeURIComponent(t.path)}`, { method: 'POST', body: t.model.getValue() });
+                t.unsaved = false;
             }
-            function onMouseMove(e) { moveAt(e.pageX, e.pageY); }
-            document.addEventListener('mousemove', onMouseMove);
-            document.onmouseup = function() {
-                document.removeEventListener('mousemove', onMouseMove);
-                document.onmouseup = null;
-            };
-        };
+        });
+        renderTabs();
+        updateFileTreeUnsavedUI();
 
-        function setStatus(t) { document.getElementById('status-text').innerText = t; }
-    </script>
+        setStatus(`${projectName} Building...`);
+        apiFetch(`/api/build?project=${projectName}`, { method: 'POST' }).then(() => {
+            setTimeout(loadTree, 1000);
+            setTimeout(() => openLogViewerFor(projectName), 500);
+        });
+    }
+
+    // ══════════════════ CONTEXT MENU ══════════════════
+    let ctxMenu = document.createElement('div');
+    ctxMenu.className = 'context-menu';
+    document.body.appendChild(ctxMenu);
+    document.addEventListener('click', () => ctxMenu.style.display = 'none');
+
+    function showMenu(e, path, type, name) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        // Keep menu within viewport
+        const x = Math.min(e.pageX, window.innerWidth - 220);
+        const y = Math.min(e.pageY, window.innerHeight - 200);
+        ctxMenu.style.left = x + 'px';
+        ctxMenu.style.top = y + 'px';
+        ctxMenu.style.display = 'block';
+
+        if (type === 'root') {
+            ctxMenu.innerHTML = `<div class="ctx-item" onclick="createProject()"><span class="ctx-icon">&#x1F4E6;</span>Create a new project</div>`;
+        } else if (type === 'project') {
+            ctxMenu.innerHTML = `<div class="ctx-item danger" onclick="apiFs('delete', '${path}')"><span class="ctx-icon">&#x1F5D1;</span>Remove project</div>`;
+        } else if (type === 'folder') {
+            const isUnderMiercoles = path.includes('/miercoles');
+            const isMiercoles = name === 'miercoles';
+            ctxMenu.innerHTML = `
+                <div class="ctx-item ${!isUnderMiercoles ? 'disabled' : ''}" onclick="apiFs('mkfile', '${path}')"><span class="ctx-icon">&#x2795;</span>New Java Class</div>
+                <div class="ctx-item ${!isUnderMiercoles ? 'disabled' : ''}" onclick="apiFs('mkdir', '${path}')"><span class="ctx-icon">&#x1F4C1;</span>New Package</div>
+                <hr>
+                <div class="ctx-item ${isMiercoles ? 'disabled' : ''}" onclick="renameItem('${path}')"><span class="ctx-icon">&#x270F;</span>Rename</div>
+                <div class="ctx-item danger ${isMiercoles ? 'disabled' : ''}" onclick="apiFs('delete', '${path}')"><span class="ctx-icon">&#x1F5D1;</span>Delete</div>
+            `;
+        } else {
+            ctxMenu.innerHTML = `
+                <div class="ctx-item" onclick="renameItem('${path}')"><span class="ctx-icon">&#x270F;</span>Rename</div>
+                <div class="ctx-item danger" onclick="apiFs('delete', '${path}')"><span class="ctx-icon">&#x1F5D1;</span>Delete</div>
+            `;
+        }
+    }
+
+    function createProject() {
+        let pName = prompt('Project name (without space, ex: LoginSystem):');
+        if (pName && pName.trim() !== '') {
+            apiFs('mkdir', pName.trim() + '/miercoles');
+        }
+    }
+
+    function renameItem(oldPath) {
+        let newPath = prompt('Enter the new name:', oldPath.split('/').pop());
+        if (newPath) {
+            let p = oldPath.split('/');
+            p.pop();
+            p.push(newPath);
+            apiFs('rename', oldPath, p.join('/'));
+        }
+    }
+
+    function apiFs(action, path, newPath) {
+        let targetPath = path;
+        if (action === 'mkfile') {
+            let name = prompt('Enter the class name (Ex: MyScript.java):');
+            if (!name) return;
+            if (!name.endsWith('.java')) name += '.java';
+            targetPath = path + '/' + name;
+        } else if (action === 'mkdir') {
+            if (path.endsWith('/miercoles')) {
+                targetPath = path;
+            } else {
+                let name = prompt('Enter a Packet/Folder name (ex: utils):');
+                if (!name) return;
+                targetPath = path + '/' + name;
+            }
+        } else if (action === 'delete') {
+            if (!confirm(`Are you sure? we cant get back them for you:\n${path}`)) return;
+            let tabIndex = openTabs.findIndex(t => t.path === path || t.path.startsWith(path + '/'));
+            if (tabIndex !== -1) {
+                openTabs.splice(tabIndex, 1);
+                currentActivePath = null;
+                renderTabs();
+            }
+        }
+
+        apiFetch(`/api/fs`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action, path: targetPath, newPath })
+        }).then(() => {
+            if (action === 'mkfile') {
+                let parts = targetPath.split('/');
+                let className = parts[parts.length - 1].replace('.java', '');
+                let pkgIndex = parts.indexOf('miercoles');
+                let pkg = 'miercoles';
+                if (pkgIndex !== -1 && parts.length - 1 > pkgIndex + 1) {
+                    pkg = parts.slice(pkgIndex, parts.length - 1).join('.');
+                }
+                let template = `package ${pkg};\n\nimport livejava.api.LiveScript;\nimport org.bukkit.Bukkit;\n\npublic class ${className} extends LiveScript {\n    @Override\n    public void onStart() {\n    }\n\n    @Override\n    public void onStop() {\n    }\n}\n`;
+                apiFetch(`/api/file?path=${encodeURIComponent(targetPath)}`, {
+                    method: 'POST', body: template
+                }).then(() => { loadTree(); openFileAsTab(targetPath, className + '.java'); });
+            } else {
+                loadTree();
+            }
+        });
+    }
+
+    // ══════════════════ LOG VIEWER ══════════════════
+    const logViewer = document.getElementById('logViewer');
+    const logHeader = document.getElementById('logHeader');
+
+    function toggleLogViewer() {
+        logViewer.style.display = logViewer.style.display === 'flex' ? 'none' : 'flex';
+    }
+
+    function openLogViewerFor(projName) {
+        logViewer.style.display = 'flex';
+        document.getElementById('logTitle').innerText = `Console: ${projName}`;
+        let fetches = 0;
+        let logInter = setInterval(() => {
+            fetches++;
+            apiFetch(`/api/logs?project=${projName}`)
+                .then(r => r.text())
+                .then(t => {
+                    document.getElementById('logContent').innerText = t;
+                    document.getElementById('logContent').scrollTop = 9999;
+                });
+            if (fetches >= 5) clearInterval(logInter);
+        }, 1000);
+    }
+
+    // Drag
+    logHeader.onmousedown = function(e) {
+        if (e.target.closest('.log-close')) return;
+        let shiftX = e.clientX - logViewer.getBoundingClientRect().left;
+        let shiftY = e.clientY - logViewer.getBoundingClientRect().top;
+        function moveAt(pageX, pageY) {
+            logViewer.style.left = pageX - shiftX + 'px';
+            logViewer.style.top = pageY - shiftY + 'px';
+            logViewer.style.bottom = 'auto';
+            logViewer.style.right = 'auto';
+        }
+        function onMouseMove(e) { moveAt(e.pageX, e.pageY); }
+        document.addEventListener('mousemove', onMouseMove);
+        document.onmouseup = function() {
+            document.removeEventListener('mousemove', onMouseMove);
+            document.onmouseup = null;
+        };
+    };
+
+    function setStatus(t) { document.getElementById('status-text').innerText = t; }
+</script>
 </body>
 </html>
