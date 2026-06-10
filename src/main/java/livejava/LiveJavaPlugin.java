@@ -450,7 +450,6 @@ public class LiveJavaPlugin extends JavaPlugin implements TabCompleter {
 
         File tempDir = new File(getDataFolder(), "temp_classes/" + projectName);
 
-        // GHOST CLASS FIX: Derlemeden önce mevcut tüm eski derlenmiş classları tamamen yok et!
         if (tempDir.exists()) {
             deleteRecursively(tempDir);
         }
