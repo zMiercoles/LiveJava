@@ -7,11 +7,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.38.0/min/vs/loader.min.js"></script>
     <style>
-        /* ═══════════════════════════════════════════════
-           LiveJava IDE — Dark Premium Theme
-           JetBrains-inspired, Gold & Blue accents
-           ═══════════════════════════════════════════════ */
-
         :root {
             --bg-deep: #0d1117;
             --bg-surface: #161b22;
@@ -1046,7 +1041,7 @@
                     <div class="ctx-item ${!isUnderMiercoles ? 'disabled' : ''}" onclick="apiFs('mkdir', '${path}')"><span class="ctx-icon">&#x1F4C1;</span>New Package</div>
                     <hr>
                     <div class="ctx-item ${isMiercoles ? 'disabled' : ''}" onclick="renameItem('${path}')"><span class="ctx-icon">&#x270F;</span>Rename</div>
-                    <div class="ctx-item danger ${isMiercoles ? 'disabled' : ''}" onclick="apiFs('delete', '${path}')"><span class="ctx-icon">&#x1F5D1;</span>Sil</div>
+                    <div class="ctx-item danger ${isMiercoles ? 'disabled' : ''}" onclick="apiFs('delete', '${path}')"><span class="ctx-icon">&#x1F5D1;</span>Delete</div>
                 `;
             } else {
                 ctxMenu.innerHTML = `
